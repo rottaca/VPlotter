@@ -13,8 +13,12 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    imageconverter.cpp \
+    vplotterrenderer.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += mainwindow.h \
+    imageconverter.h \
+    vplotterrenderer.h
 
 FORMS    += mainwindow.ui

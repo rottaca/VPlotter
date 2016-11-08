@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QtSerialPort/QtSerialPort>
 
+#include "imageconverter.h"
 
 namespace Ui {
 class MainWindow;
@@ -31,11 +32,13 @@ public slots:
     void onClickMoveLeft();
     void onClickMoveRight();
     void onClickMoveDown();
+    void onChangeImgBounds();
 
 private:
     Ui::MainWindow *ui;
     QSerialPort serialPort;
     QImage currentImage;
+    ImageConverter imgConverter;
 
 };
 

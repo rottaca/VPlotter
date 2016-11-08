@@ -16,6 +16,13 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(ui->b_connect, SIGNAL (clicked()), this, SLOT (onClickConnect()));
     QObject::connect(ui->le_command, SIGNAL (returnPressed()), this, SLOT (onSubmitCmd()));
 
+    QObject::connect(ui->sb_pos_x, SIGNAL (valueChanged(double)), this, SLOT (onChangeImgBounds()));
+    QObject::connect(ui->sb_pos_y, SIGNAL (valueChanged(double)), this, SLOT (onChangeImgBounds()));
+    QObject::connect(ui->sb_scale, SIGNAL (valueChanged(double)), this, SLOT (onChangeImgBounds()));
+
+    ui->vp_plotterRenderer->setPlotterSize(600,700);
+    ui->sb_pos_x->setMaximum(600);
+    ui->sb_pos_y->setMaximum(700);
 }
 
 MainWindow::~MainWindow()
@@ -44,16 +51,24 @@ void MainWindow::onClickOpenFile()
     {
         printStatus(QString("Can't open image: %1").arg(file),true);
         ui->gb_imageConvert->setEnabled(false);
-        ui->l_image->setPixmap(QImage());
+        ui->vp_plotterRenderer->setImage(QImage());
+        ui->vp_plotterRenderer->setImageBounds(0,0,0);
 
         return;
     }
+    // Only use grayscale images
+    currentImage = currentImage.convertToFormat(QImage::Format_Grayscale8);
 
-    ui->l_image->setPixmap(QPixmap::fromImage(currentImage).scaled(
-                               ui->l_image->width(),
-                               ui->l_image->height(),
-                               Qt::KeepAspectRatioByExpanding,
-                               Qt::FastTransformation));
+    ui->vp_plotterRenderer->setImage(currentImage);
+    float scale = std::min(ui->vp_plotterRenderer->getPlotterSize().x()/currentImage.width(),
+                      ui->vp_plotterRenderer->getPlotterSize().y()/currentImage.height());
+    ui->vp_plotterRenderer->setImageBounds(scale,0,0);
+    qDebug(QString("%1").arg(scale).toLocal8Bit());
+
+    ui->sb_scale->setValue(scale);
+    ui->sb_pos_x->setValue(0);
+    ui->sb_pos_y->setValue(0);
+
     ui->gb_imageConvert->setEnabled(true);
 }
 
@@ -91,6 +106,11 @@ void MainWindow::onSubmitCmd()
         printStatus(QString("Failed to write all data (only %1 of %2 bytes)").arg(sz).arg(msg.length()),true);
     }
     ui->le_command->setText("");
+}
+
+void MainWindow::onChangeImgBounds()
+{
+    ui->vp_plotterRenderer->setImageBounds(ui->sb_scale->value(),ui->sb_pos_x->value(),ui->sb_pos_y->value());
 }
 
 void MainWindow::onClickLeftUp(){}
