@@ -13,8 +13,8 @@
 #define GCODE_COMMAND_SEPERATOR '\n'
 
 // Defines the home position
-#define HOME_POS_X 0.1
-#define HOME_POS_Y 0.1
+#define HOME_POS_X 100
+#define HOME_POS_Y 100
 
 
 #include "fifo.h"
@@ -34,6 +34,7 @@ void setup() {
   buffer = fifo_init(CMD_RING_BUFFER_SIZE + 1);
   hw_ctrl_init();
   Serial.println("System initialized..");
+  Serial.println("Version 0.1");
 
 
 }
@@ -235,7 +236,10 @@ void executeMCode(int code, char** params) {
         hw_ctrl_calibrate_home(base, l1, l2);
         
 #ifdef DEBUG_PRINTS
-        Serial.println("Calibrated: " + String(hw_state.calibration_x) + " " + String(hw_state.calibration_y));
+        char tmp1[10],tmp2[10];
+        dtostrf(hw_state.calibration_x,5,3,tmp1);
+        dtostrf(hw_state.calibration_y,5,3,tmp2);
+        Serial.println("Calibrated: " + String(tmp1) + " " + String(tmp2));
   #endif
         break;
       }

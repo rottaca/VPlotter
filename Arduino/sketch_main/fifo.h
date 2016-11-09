@@ -135,3 +135,4 @@ size_t fifo_get_bytes_until_end(struct fifo_t *fifo, fifo_data_t *ptr) {
 
 
 #endif
+

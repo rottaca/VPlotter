@@ -19,6 +19,7 @@ public:
     ~MainWindow();
 
     void printStatus(QString msg, bool error=false);
+    bool sendCmd(QString msg);
 
 public slots:
     void onClickOpenFile();
@@ -32,7 +33,10 @@ public slots:
     void onClickMoveLeft();
     void onClickMoveRight();
     void onClickMoveDown();
+    void onClickPenUpDown();
+    void onClickSetSpeed();
     void onChangeImgBounds();
+    void onTimerReadSerial();
 
 private:
     Ui::MainWindow *ui;
