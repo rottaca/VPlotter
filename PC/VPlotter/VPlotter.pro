@@ -15,10 +15,14 @@ TEMPLATE = app
 SOURCES += main.cpp\
         mainwindow.cpp \
     imageconverter.cpp \
-    vplotterrenderer.cpp
+    vplotterrenderer.cpp \
+    graphicseffects.cpp \
+    commandlistexecutor.cpp
 
 HEADERS  += mainwindow.h \
     imageconverter.h \
-    vplotterrenderer.h
+    vplotterrenderer.h \
+    graphicseffects.h \
+    commandlistexecutor.h
 
 FORMS    += mainwindow.ui

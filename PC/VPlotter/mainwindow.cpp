@@ -5,6 +5,8 @@
 #include <QImage>
 #include <QTimer>
 
+#include "graphicseffects.h"
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -19,11 +21,20 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(ui->sb_pos_y, SIGNAL (valueChanged(double)), this, SLOT (onChangeImgBounds()));
     QObject::connect(ui->sb_scale, SIGNAL (valueChanged(double)), this, SLOT (onChangeImgBounds()));
 
-
     QObject::connect(ui->b_pen_updown, SIGNAL (clicked()), this, SLOT (onClickPenUpDown()));
+    QObject::connect(ui->b_move_down, SIGNAL (clicked()), this, SLOT (onClickMoveDown()));
+    QObject::connect(ui->b_move_left, SIGNAL (clicked()), this, SLOT (onClickMoveLeft()));
+    QObject::connect(ui->b_move_right, SIGNAL (clicked()), this, SLOT (onClickMoveRight()));
+    QObject::connect(ui->b_move_up, SIGNAL (clicked()), this, SLOT (onClickMoveUp()));
+    QObject::connect(ui->b_calib, SIGNAL (clicked()), this, SLOT (onClickCalibrate()));
     QObject::connect(ui->b_set_speed, SIGNAL (clicked()), this, SLOT (onClickSetSpeed()));
 
     connect(&serialPort, SIGNAL(readyRead()), this, SLOT(onTimerReadSerial()));
+
+    timer = new QTimer();
+    connect(timer,SIGNAL(timeout()),this,SLOT(onPollPosition()));
+    //timer->start(5000);
+    cmdListExec = new CommandListExecutor(&serialPort);
 
     ui->vp_plotterRenderer->setPlotterSize(600,700);
     ui->sb_pos_x->setMaximum(600);
@@ -72,12 +83,14 @@ void MainWindow::onClickOpenFile()
     }
     // Only use grayscale images
     currentImage = currentImage.convertToFormat(QImage::Format_Grayscale8);
+    currentImage = GraphicsEffects::applyBlur(currentImage);
+    currentImage = GraphicsEffects::applySobel(currentImage);
+
 
     ui->vp_plotterRenderer->setImage(currentImage);
     float scale = std::min(ui->vp_plotterRenderer->getPlotterSize().x()/currentImage.width(),
                       ui->vp_plotterRenderer->getPlotterSize().y()/currentImage.height());
     ui->vp_plotterRenderer->setImageBounds(scale,0,0);
-    qDebug(QString("%1").arg(scale).toLocal8Bit());
 
     ui->sb_scale->setValue(scale);
     ui->sb_pos_x->setValue(0);
@@ -95,6 +108,8 @@ void MainWindow::onClickConnect()
         ui->le_command->setEnabled(false);
         ui->gb_calibration->setEnabled(false);
         ui->gb_manual->setEnabled(false);
+        ui->gb_cmd_edit->setEnabled(false);
+        timer->stop();
         return;
     }
     QString port = ui->le_portName->text();
@@ -109,6 +124,8 @@ void MainWindow::onClickConnect()
         ui->le_command->setEnabled(true);
         ui->gb_calibration->setEnabled(true);
         ui->gb_manual->setEnabled(true);
+        ui->gb_cmd_edit->setEnabled(true);
+        ui->te_output->clear();
 
         QString msg = QString("Connection to %1 successful!").arg(port);
         printStatus(msg);
@@ -135,8 +152,8 @@ void MainWindow::onTimerReadSerial()
 {
     if(!serialPort.isOpen())
         return;
-    QByteArray data;
-    data.append(serialPort.readAll());
+
+    QByteArray data = serialPort.readAll();
 
     if(data.length() > 0){
         ui->te_output->moveCursor (QTextCursor::End);
@@ -154,10 +171,26 @@ void MainWindow::onClickLeftUp(){}
 void MainWindow::onClickLeftDown(){}
 void MainWindow::onClickRightUp(){}
 void MainWindow::onClickRightDown(){}
-void MainWindow::onClickMoveUp(){}
-void MainWindow::onClickMoveLeft(){}
-void MainWindow::onClickMoveRight(){}
-void MainWindow::onClickMoveDown(){}
+void MainWindow::onClickMoveUp(){
+    sendCmd("G91\n");
+    sendCmd(QString("G0 Y-%1\n").arg(ui->sb_move_dist->value()));
+    sendCmd("G90\n");
+}
+void MainWindow::onClickMoveLeft(){
+    sendCmd("G91\n");
+    sendCmd(QString("G0 X-%1\n").arg(ui->sb_move_dist->value()));
+    sendCmd("G90\n");
+}
+void MainWindow::onClickMoveRight(){
+    sendCmd("G91\n");
+    sendCmd(QString("G0 X%1\n").arg(ui->sb_move_dist->value()));
+    sendCmd("G90\n");
+}
+void MainWindow::onClickMoveDown(){
+    sendCmd("G91\n");
+    sendCmd(QString("G0 Y%1\n").arg(ui->sb_move_dist->value()));
+    sendCmd("G90\n");
+}
 void MainWindow::onClickPenUpDown(){
     if(ui->b_pen_updown->text().compare("Pen Down")==0){
         if(sendCmd("M3\n"))
@@ -189,4 +222,50 @@ bool MainWindow::sendCmd(QString msg){
         return false;
     }
     return true;
+}
+void MainWindow::onClickCalibrate()
+{
+    float b = ui->sb_calib_base->value();
+    float l = ui->sb_calib_left->value();
+    float r = ui->sb_calib_right->value();
+    sendCmd(QString("M5 B%1 L%2 R%3\n").arg(b).arg(l).arg(r));
+}
+void MainWindow::onPollPosition(){
+    serialPort.write("M8\n");
+    QByteArray data = serialPort.readLine();
+    QString strData(data);
+    QStringList list = strData.split(" ");
+    if(list.size() == 2)
+        ui->l_pos->setText(list.at(0) + "x" + list.at(1));
+    else
+        ui->l_pos->setText("unknown...");
+}
+
+void MainWindow::onClickOpenCmdFile()
+{
+    QString name = QFileDialog::getOpenFileName(this,
+       "Open Cmd File", "~", "Text Files (*.txt)");
+
+    if(name.isNull())
+        return;
+
+    QFile file(name);
+    if(!file.open(QIODevice::ReadOnly)) {
+        printStatus(QString("Can't load cmd file %1").arg(name),true);
+        return;
+    }
+    QString txt = file.readAll();
+    ui->te_comand_script->setText(txt);
+}
+
+void MainWindow::onClickExecuteCmdFile()
+{
+    if(ui->b_execute->text().compare("Execute")){
+        QStringList cmds = ui->te_comand_script->toPlainText().split("\n");
+        cmdListExec->executeCmdList(cmds);
+        ui->b_execute->setText("Stop execution");
+    }else{
+        cmdListExec->stop();
+        ui->b_execute->setText("Execute");
+    }
 }

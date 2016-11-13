@@ -5,6 +5,7 @@
 #include <QtSerialPort/QtSerialPort>
 
 #include "imageconverter.h"
+#include "commandlistexecutor.h"
 
 namespace Ui {
 class MainWindow;
@@ -37,13 +38,18 @@ public slots:
     void onClickSetSpeed();
     void onChangeImgBounds();
     void onTimerReadSerial();
+    void onClickCalibrate();
+    void onPollPosition();
+    void onClickOpenCmdFile();
+    void onClickExecuteCmdFile();
 
 private:
     Ui::MainWindow *ui;
     QSerialPort serialPort;
     QImage currentImage;
     ImageConverter imgConverter;
-
+    QTimer* timer;
+    CommandListExecutor* cmdListExec;
 };
 
 #endif // MAINWINDOW_H
