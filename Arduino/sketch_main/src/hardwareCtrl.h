@@ -201,25 +201,13 @@ void hw_ctrl_execute_motion(float x, float y) {
   hw_ctrl_convert_point_to_length(x,y,&L,&R);
   hw_state.motor_pos_target[STP_LEFT] = LENGTH_TO_STEPS(L);
   hw_state.motor_pos_target[STP_RIGHT] = LENGTH_TO_STEPS(R);
+  // Optimized and faster bresenham line algorithm
+  // Source:http://members.chello.at/easyfilter/bresenham.html
   hw_state.dSteps[STP_LEFT] = abs(hw_state.motor_pos_target[STP_LEFT] - hw_state.motor_pos[STP_LEFT]);
   hw_state.dSteps[STP_RIGHT] = abs(hw_state.motor_pos_target[STP_RIGHT] - hw_state.motor_pos[STP_RIGHT]);
   hw_state.s[STP_LEFT]  = hw_state.motor_pos_target[STP_LEFT] > hw_state.motor_pos[STP_LEFT]?1:-1;
   hw_state.s[STP_RIGHT]  = hw_state.motor_pos_target[STP_RIGHT] > hw_state.motor_pos[STP_RIGHT]?1:-1;
-
-  hw_state.dd[STP_RIGHT] = hw_state.s[STP_RIGHT];
-  hw_state.dd[STP_LEFT] = hw_state.s[STP_LEFT];
-  if(hw_state.dSteps[STP_LEFT] > hw_state.dSteps[STP_RIGHT]){
-    hw_state.dp[STP_LEFT] = hw_state.s[STP_LEFT];
-    hw_state.dp[STP_RIGHT] =0;
-    hw_state.es = hw_state.dSteps[STP_RIGHT];
-    hw_state.el = hw_state.dSteps[STP_LEFT];
-  }else{
-    hw_state.dp[STP_RIGHT] = hw_state.s[STP_RIGHT];
-    hw_state.dp[STP_LEFT] =0;
-    hw_state.es = hw_state.dSteps[STP_LEFT];
-    hw_state.el = hw_state.dSteps[STP_RIGHT];
-  }
-  hw_state.err = hw_state.el;
+  hw_state.err = hw_state.dSteps[STP_LEFT]-hw_state.dSteps[STP_RIGHT];
 
   // Set direction
   digitalWrite(PIN_DIR_RIGHT,(hw_state.s[STP_RIGHT])>0?1:0);
@@ -244,7 +232,22 @@ void hw_ctrl_timer_callback() {
             hw_state.state = IDLE;
             break;
         }
-
+        // Optimized and faster bresenham line algorithm
+        // Source:http://members.chello.at/easyfilter/bresenham.html
+        int32_t e2 = 2*hw_state.err;
+        if(e2 >= -hw_state.dSteps[STP_RIGHT]){
+          hw_state.err -= hw_state.dSteps[STP_RIGHT];
+          digitalWrite(PIN_STEP_LEFT, 1);
+          digitalWrite(PIN_STEP_LEFT, 0);
+          hw_state.motor_pos[STP_LEFT] += hw_state.s[STP_LEFT];
+        }
+        if(e2<= hw_state.dSteps[STP_LEFT]){
+          hw_state.err += hw_state.dSteps[STP_LEFT];
+          digitalWrite(PIN_STEP_RIGHT, 1);
+          digitalWrite(PIN_STEP_RIGHT, 0);
+          hw_state.motor_pos[STP_RIGHT] += hw_state.s[STP_RIGHT];
+        }
+        /**
         // Bresenham line algorithm
         hw_state.err -= 2*hw_state.es;
         if(hw_state.err < 0){
@@ -269,6 +272,7 @@ void hw_ctrl_timer_callback() {
             hw_state.motor_pos[STP_RIGHT] += hw_state.dp[STP_RIGHT];
           }
         }
+        */
     }
     break;
   case WAIT_SERVO:
