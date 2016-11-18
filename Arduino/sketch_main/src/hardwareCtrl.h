@@ -17,12 +17,13 @@
 #define STEPPER_STEPS_PER_REVOLUTION 200
 // Speed of timer0, used for servo positioning and stepper control
 #define TIMER1_US_PER_INTERRUPT 100
+#define SPEED_MULTIPLIER 2
 
 // Pin layout
-#define PIN_DIR_LEFT 2
-#define PIN_DIR_RIGHT 6
-#define PIN_STEP_LEFT 3
-#define PIN_STEP_RIGHT 7
+#define PIN_DIR_LEFT 6
+#define PIN_DIR_RIGHT 2
+#define PIN_STEP_LEFT 7
+#define PIN_STEP_RIGHT 3
 #define PIN_SERVO 9
 #define PIN_LED 13
 
@@ -50,6 +51,7 @@
 // Stepper names and cnt: 0,1,2
 enum {STP_LEFT,STP_RIGHT,STP_CNT};
 
+// States for hardware state machine
 enum state_t{START,IDLE,MOVING,WAIT_SERVO};
 
 // Struct that contains all hardware data
@@ -75,10 +77,10 @@ struct hardware_state_t
   // Time since last servo signal
   uint32_t servo_signal_length_us;
   // Servo up-time in microseconds -> Defines servo position
-  uint32_t timer0_us_since_servo_period;
+  uint32_t us_since_servo_period;
 };
 
-struct hardware_state_t hw_state;
+volatile struct hardware_state_t hw_state;
 
 // FWD declarationR
 void hw_ctrl_init();
@@ -96,7 +98,23 @@ inline bool hw_ctrl_is_busy();
 
 void hw_ctrl_init()
 {
-  memset(&hw_state,0,sizeof(struct hardware_state_t));
+
+  for(int i = 0; i < STP_CNT; i++){
+    hw_state.dd[i] = 0;
+    hw_state.dp[i] = 0;
+    hw_state.dSteps[i] = 0;
+    hw_state.motor_pos[i] = 0;
+    hw_state.motor_pos_target[i] = 0;
+    hw_state.s[i] = 0;
+  }
+
+  hw_state.base = 0;
+  hw_state.el = 0;
+  hw_state.err = 0;
+  hw_state.es = 0;
+  hw_state.moveing = false;
+  hw_state.servo_move_delay = 0;
+  hw_state.us_since_servo_period = 0;
   hw_state.state = START;
   hw_state.servo_signal_length_us = SERVO_US_POS_UP;
 
@@ -114,6 +132,18 @@ void hw_ctrl_init()
   // Start timer for motor control
   Timer1.initialize(TIMER1_US_PER_INTERRUPT);
   Timer1.attachInterrupt(hw_ctrl_timer_callback);
+
+  // Init servo timer by hand
+  // F_CPU = 16000000Hz (16 MHz)
+  // Timer 2: 8-Bit -> 256
+  // Prescaler 8 -> 16000000Hz/8 =2000000Hz
+  // 1000/2000000Hz = 0,0005ms per Tick
+  // 0,0005ms*256 = 0,128 ms per Overflow
+  TCCR2A = 0;
+  // Prescaler 8
+  TCCR2B = (1 << CS21);
+  // Enable overflow interrupt
+  TIMSK2 = (1 << TOIE2);
 
 }
 
@@ -201,56 +231,44 @@ void hw_ctrl_execute_motion(float x, float y) {
 }
 
 void hw_ctrl_timer_callback() {
-
-  // Control servo first
-  hw_state.timer0_us_since_servo_period += TIMER1_US_PER_INTERRUPT;
-
-  if (hw_state.timer0_us_since_servo_period >= SERVO_US_FULL_PHASE) {
-    hw_state.timer0_us_since_servo_period = 0;
-    digitalWrite(PIN_SERVO, 1);
-  } else if (hw_state.timer0_us_since_servo_period > hw_state.servo_signal_length_us) {
-    digitalWrite(PIN_SERVO, 0);
-  }
-
   switch (hw_state.state) {
     case START:
     case IDLE:
       break;
     case MOVING:
     {
-      // Motion finished ?
-      if(hw_state.motor_pos[STP_LEFT] == hw_state.motor_pos_target[STP_LEFT] &&
-        hw_state.motor_pos[STP_RIGHT] == hw_state.motor_pos_target[STP_RIGHT])
-      {
-          hw_state.state = IDLE;
-          break;
-      }
+        // Motion finished ?
+        if(hw_state.motor_pos[STP_LEFT] == hw_state.motor_pos_target[STP_LEFT] &&
+          hw_state.motor_pos[STP_RIGHT] == hw_state.motor_pos_target[STP_RIGHT])
+        {
+            hw_state.state = IDLE;
+            break;
+        }
 
-      // Bresenham line algorithm
-      hw_state.err -= 2*hw_state.es;
-      if(hw_state.err < 0){
-        hw_state.err += 2*hw_state.el;
-        digitalWrite(PIN_STEP_LEFT, 1);
-        digitalWrite(PIN_STEP_LEFT, 0);
-        hw_state.motor_pos[STP_LEFT] += hw_state.dd[STP_LEFT];
-
-        digitalWrite(PIN_STEP_RIGHT, 1);
-        digitalWrite(PIN_STEP_RIGHT, 0);
-        hw_state.motor_pos[STP_RIGHT] += hw_state.dd[STP_RIGHT];
-
-      }else{
-        if(hw_state.dp[STP_LEFT] != 0){
+        // Bresenham line algorithm
+        hw_state.err -= 2*hw_state.es;
+        if(hw_state.err < 0){
+          hw_state.err += 2*hw_state.el;
           digitalWrite(PIN_STEP_LEFT, 1);
           digitalWrite(PIN_STEP_LEFT, 0);
-          hw_state.motor_pos[STP_LEFT] += hw_state.dp[STP_LEFT];
-        }
-        if(hw_state.dp[STP_RIGHT] != 0){
+          hw_state.motor_pos[STP_LEFT] += hw_state.dd[STP_LEFT];
+
           digitalWrite(PIN_STEP_RIGHT, 1);
           digitalWrite(PIN_STEP_RIGHT, 0);
-          hw_state.motor_pos[STP_RIGHT] += hw_state.dp[STP_RIGHT];
-        }
-      }
+          hw_state.motor_pos[STP_RIGHT] += hw_state.dd[STP_RIGHT];
 
+        }else{
+          if(hw_state.dp[STP_LEFT] != 0){
+            digitalWrite(PIN_STEP_LEFT, 1);
+            digitalWrite(PIN_STEP_LEFT, 0);
+            hw_state.motor_pos[STP_LEFT] += hw_state.dp[STP_LEFT];
+          }
+          if(hw_state.dp[STP_RIGHT] != 0){
+            digitalWrite(PIN_STEP_RIGHT, 1);
+            digitalWrite(PIN_STEP_RIGHT, 0);
+            hw_state.motor_pos[STP_RIGHT] += hw_state.dp[STP_RIGHT];
+          }
+        }
     }
     break;
   case WAIT_SERVO:
@@ -294,5 +312,17 @@ void hw_ctrl_convert_point_to_length(float x, float y, float* L, float* R){
   *R = sqrt((hw_state.base - x) * (hw_state.base - x) + y * y);
 }
 
+// ISR for servo positioning
+ISR(TIMER2_OVF_vect){
+    // 128 us per timer overflow
+    hw_state.us_since_servo_period += 128;
+
+    if (hw_state.us_since_servo_period >= SERVO_US_FULL_PHASE) {
+      hw_state.us_since_servo_period = 0;
+      digitalWrite(PIN_SERVO, 1);
+    } else if (hw_state.us_since_servo_period > hw_state.servo_signal_length_us) {
+      digitalWrite(PIN_SERVO, 0);
+    }
+}
 
 #endif
