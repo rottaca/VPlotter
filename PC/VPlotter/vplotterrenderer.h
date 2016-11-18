@@ -36,11 +36,16 @@ public:
         fitInView(p_scene->sceneRect(),Qt::KeepAspectRatio);
     }
 
+    void simulateCommands(QStringList cmds);
+private:
+    QVector2D readG0(QString g0, QVector2D currPos);
+
 private:
     QGraphicsPixmapItem* imgItem;
     QGraphicsRectItem* plotterRectItem;
     QVector2D imgSize;
     QRect imgBounds;
+    QGraphicsPixmapItem* imgItemSimulation;
 
     QGraphicsScene* p_scene;
 

@@ -20,9 +20,9 @@ public:
     ~MainWindow();
 
     void printStatus(QString msg, bool error=false);
-    bool sendCmd(QString msg);
 
 public slots:
+    void sendCmd(QString msg);
     void onClickOpenFile();
     void onClickConnect();
     void onSubmitCmd();
@@ -42,6 +42,13 @@ public slots:
     void onPollPosition();
     void onClickOpenCmdFile();
     void onClickExecuteCmdFile();
+    void onClickSimulateCmdFile();
+    void onCmdExecFinished();
+
+signals:
+    void onSerialAnswerRecieved(QString);
+    void onStopCmdExec();
+    void onExecCmdList(QStringList);
 
 private:
     Ui::MainWindow *ui;

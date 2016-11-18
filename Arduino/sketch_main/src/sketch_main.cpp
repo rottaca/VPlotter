@@ -7,9 +7,9 @@
 #include "hardwareCtrl.h"
 
 // Size of the ringbuffer that contains all commands
-#define CMD_RING_BUFFER_SIZE 128
+#define CMD_RING_BUFFER_SIZE 10
 // Size of the data that is read as a single piece
-#define MAX_CMD_SIZE 64
+#define MAX_CMD_SIZE 32
 // Maximum number of gcode parameters
 #define MAX_GCODE_PARAMS 5
 // Seperator for gcode parameters
@@ -18,17 +18,19 @@
 #define GCODE_COMMAND_SEPERATOR '\n'
 // Timeout for serial read
 #define SERIAL_TIMEOUT 100
-
-
+// ACK and error codes
 #define SEND_NOERROR Serial.println("ACK: 0")
 #define SEND_ERROR(err) Serial.println("ACK: " + String(err))
 enum ERROR_CODES{
   ERROR_CALIB_FIRST = 1,
   ERROR_INVALID_PARAM,
   ERROR_UNKNOWN_CODE,
-  ERROR_CALIB_FAILED
+  ERROR_CALIB_FAILED,
+  ERROR_INVALID_STATE
 };
 #define SEND_BUSY Serial.println("BUSY");
+
+
 
 // Forward declarations
 void processSerialInput();
@@ -38,16 +40,21 @@ bool executeGCode(int code, char** params) ;
 void executeMCode(int code, char** params) ;
 size_t recieveSerialInput(char* data);
 void processSerialInput(char* data);
-void executeM7();
-void executeM8();
 
 boolean executeG0(char** params);
 boolean executeG28(char** params);
 boolean executeM6(char** params);
 boolean executeM5(char** params);
+void executeM8();
+void executeM7();
 
 // Variables for serial communication
-//fifo_t buffer;
+char cmdBuffer[CMD_RING_BUFFER_SIZE][MAX_CMD_SIZE+1];
+uint16_t writeIdx;
+uint16_t readIdx;
+#define BUFFER_NEXT(p) ((p+1)%CMD_RING_BUFFER_SIZE)
+#define BUFFER_FULL() (BUFFER_NEXT(writeIdx) == readIdx)
+#define BUFFER_EMPTY() (readIdx == writeIdx)
 
 // Systemstate
 boolean absolutePositioning = true;
@@ -58,31 +65,44 @@ void setup() {
   Serial.begin(9600);
   Serial.setTimeout(SERIAL_TIMEOUT);
 
-  // Initialize ringbuffer
-  //buffer = fifo_init(CMD_RING_BUFFER_SIZE + 1);
+  // Init pointers on ringbuffer
+  writeIdx = 0;
+  readIdx = writeIdx;
+
   hw_ctrl_init();
   Serial.println("System initialized");
   Serial.println("Version 0.1");
-
 }
 
 void loop() {
-  // Always get bytes from buffer to avoid buffer overflows on serial port
-  char input[MAX_CMD_SIZE+1];
-  if(recieveSerialInput(input)<= 0)
-    return;
 
-  while(hw_ctrl_is_moving()){
-      delay(500);
-      SEND_BUSY;
+  // Buffer not full?
+  if( !BUFFER_FULL() ){
+    // Get cmd
+    if(recieveSerialInput(cmdBuffer[writeIdx])> 0){
+      //Serial.print("Recieved:");
+      //Serial.println(cmdBuffer[writeIdx]);
+
+      // Position filled with data, go to next
+      writeIdx = BUFFER_NEXT(writeIdx);
+    }
+  }else{
+        delay(100);
+        SEND_BUSY;
   }
 
-  processSerialInput(input);
+  if(hw_ctrl_is_busy()||BUFFER_EMPTY())
+    return;
+
+  // Execute new command and toto next
+  //Serial.print("Execute:");
+  //Serial.println(cmdBuffer[readIdx]);
+  processSerialInput(cmdBuffer[readIdx]);
+  readIdx = BUFFER_NEXT(readIdx);
 }
 
 
 size_t recieveSerialInput(char* data) {
-
     size_t sz =  Serial.readBytesUntil(GCODE_COMMAND_SEPERATOR, data, MAX_CMD_SIZE);
     data[sz] = 0;    // Replace seperator with string termination
     return sz;
@@ -175,12 +195,16 @@ bool executeGCode(int code, char** params) {
 void executeMCode(int code, char** params) {
   switch (code) {
   case 3: // PEN_UP
-    hw_ctrl_set_drawing(false);
-    SEND_NOERROR;
+    if(hw_ctrl_set_drawing(false))
+      SEND_NOERROR;
+    else
+      SEND_ERROR(ERROR_INVALID_STATE);
     break;
   case 4: // PEN_DOWN
-    hw_ctrl_set_drawing(true);
-    SEND_NOERROR;
+    if(hw_ctrl_set_drawing(true))
+      SEND_NOERROR;
+    else
+      SEND_ERROR(ERROR_INVALID_STATE);
     break;
   case 5:
     executeM5(params);
@@ -195,8 +219,6 @@ void executeMCode(int code, char** params) {
     SEND_ERROR(ERROR_UNKNOWN_CODE);
   }
 }
-
-
 
 // CALIBRATE
 boolean executeM5(char** params){
@@ -260,12 +282,11 @@ boolean executeG0(char** params){
   }
   char* errCheck;
   float X,Y;
-  int speed;
+  bool positionChanged = false;
 
-
-  X = hw_state.coordinate_x_start;
-  Y = hw_state.coordinate_y_start;
-
+  hw_ctrl_convert_length_to_point(STEPS_TO_LENGTH(hw_state.motor_pos[STP_LEFT]),
+    STEPS_TO_LENGTH(hw_state.motor_pos[STP_RIGHT]),
+    &X, &Y);
 
   for (int i = 0; i < MAX_GCODE_PARAMS; i++)
   {
@@ -274,68 +295,84 @@ boolean executeG0(char** params){
     if (p == 0)
       break;
     switch (p[0]) {
-    case 'X':
+    case 'X':{
+      float tmp;
       if(absolutePositioning)
-        X= strtod(&p[1], &errCheck);
+        tmp = strtod(&p[1], &errCheck);
       else
-        X+= strtod(&p[1], &errCheck);
+        tmp = X + strtod(&p[1], &errCheck);
 
       if (&params[0][1] == errCheck)
       {
         SEND_ERROR(ERROR_INVALID_PARAM);
         return false;
       }
+      if(abs(X-tmp) > 0.0001){
+        X = tmp;
+        positionChanged = true;
+      }
       break;
-    case 'Y':
+    }
+    case 'Y':{
+      float tmp;
       if(absolutePositioning)
-        Y= strtod(&p[1], &errCheck);
+        tmp = strtod(&p[1], &errCheck);
       else
-        Y+= strtod(&p[1], &errCheck);
+        tmp = Y + strtod(&p[1], &errCheck);
+
       if (&params[0][1] == errCheck)
       {
         SEND_ERROR(ERROR_INVALID_PARAM);
         return false;
       }
-      break;
-    case 'F':
-      speed = strtol(&p[1], &errCheck, 10);
-      if (&params[0][1] == errCheck)
-      {
-        SEND_ERROR(ERROR_INVALID_PARAM);
-        return false;
+      if(abs(Y-tmp) > 0.0001){
+        positionChanged = true;
+        Y = tmp;
       }
-      hw_ctrl_set_speed(speed);
       break;
     }
   }
-
+}
+if(positionChanged)
   hw_ctrl_execute_motion(X, Y);
+
   SEND_NOERROR;
   return true;
 }
 void executeM7()
 {
-    Serial.println("System status");
-    Serial.println("Hardware state");
-    Serial.println("MotionTime: " + String(hw_state.motor_motion_time));
-    Serial.println("DeltaL: " + String(hw_state.motor_pos_left_delta));
-    Serial.println("DeltaR: " + String(hw_state.motor_pos_right_delta));
-    Serial.println("Speed: " + String(hw_state.motor_speed_mm_per_min));
-    Serial.println("GoalL: " + String(hw_state.motor_pos_left_goal));
-    Serial.println("GoalR: " + String(hw_state.motor_pos_right_goal));
-    Serial.println("StartL: " + String(hw_state.motor_pos_left_start));
-    Serial.println("StartR: " + String(hw_state.motor_pos_right_start));
-    Serial.println("GoalX: " + String(hw_state.coordinate_x_goal));
-    Serial.println("GoalY: " + String(hw_state.coordinate_y_goal));
-    Serial.println("StartX: " + String(hw_state.coordinate_x_start));
-    Serial.println("StartY: " + String(hw_state.coordinate_y_start));
+    Serial.println("State: " + String(hw_state.state));
+    Serial.println("Base: " + String((int)hw_state.base));
+    float x,y;
+    hw_ctrl_convert_length_to_point(STEPS_TO_LENGTH(hw_state.motor_pos[STP_LEFT]),
+      STEPS_TO_LENGTH(hw_state.motor_pos[STP_RIGHT]),&x, &y);
+
+    Serial.println("Position X: " + String((int)x));
+    Serial.println("Position Y: " + String((int)y));
+    hw_ctrl_convert_length_to_point(STEPS_TO_LENGTH(hw_state.motor_pos_target[STP_LEFT]),
+      STEPS_TO_LENGTH(hw_state.motor_pos_target[STP_RIGHT]),&x, &y);
+
+    Serial.println("Target X: " + String((int)x));
+    Serial.println("Target Y: " + String((int)y));
+    Serial.println("Position L: " + String(hw_state.motor_pos[STP_LEFT]));
+    Serial.println("Target L: " + String(hw_state.motor_pos_target[STP_LEFT]));
+    Serial.println("Delta L: " + String(hw_state.dSteps[STP_LEFT]));
+    Serial.println("Position R: " + String(hw_state.motor_pos[STP_RIGHT]));
+    Serial.println("TargetR: " + String(hw_state.motor_pos_target[STP_RIGHT]));
+    Serial.println("Delta R: " + String(hw_state.dSteps[STP_RIGHT]));
+    Serial.println("S R: " + String(hw_state.s[STP_RIGHT]));
+    Serial.println("S L: " + String(hw_state.s[STP_LEFT]));
+    Serial.println("Bufferusage: " + String((writeIdx-readIdx)%CMD_RING_BUFFER_SIZE) + "/" + String(CMD_RING_BUFFER_SIZE));
 }
 void executeM8(){
-    float pX,pY;
-    hw_ctrl_convert_length_to_point(STEPS_TO_LENGTH(hw_state.motor_pos_left_start), STEPS_TO_LENGTH(hw_state.motor_pos_right_start), &pX, &pY);
-    char strX[10];
-    char strY[10];
-    dtostrf(pX, 5, 1, strX);
-    dtostrf(pY, 5, 1, strY);
-    Serial.println(String(strX) + String(" ") + String(strY));
+  float x,y;
+  hw_ctrl_convert_length_to_point(STEPS_TO_LENGTH(hw_state.motor_pos[STP_LEFT]),
+    STEPS_TO_LENGTH(hw_state.motor_pos[STP_RIGHT]),&x, &y);
+
+  char strX[7], strY[7];
+  dtostrf(x, 6, 2, strX);
+  dtostrf(y, 6, 2, strY);
+
+  SEND_NOERROR;
+  Serial.println(String(strX) + String(" ") + String(strY));
 }

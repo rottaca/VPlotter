@@ -13,28 +13,36 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    QObject::connect(ui->b_openImage, SIGNAL (clicked()), this, SLOT (onClickOpenFile()));
-    QObject::connect(ui->b_connect, SIGNAL (clicked()), this, SLOT (onClickConnect()));
-    QObject::connect(ui->le_command, SIGNAL (returnPressed()), this, SLOT (onSubmitCmd()));
+    connect(ui->b_openImage, SIGNAL (clicked()), this, SLOT (onClickOpenFile()));
+    connect(ui->b_connect, SIGNAL (clicked()), this, SLOT (onClickConnect()));
+    connect(ui->le_command, SIGNAL (returnPressed()), this, SLOT (onSubmitCmd()));
 
-    QObject::connect(ui->sb_pos_x, SIGNAL (valueChanged(double)), this, SLOT (onChangeImgBounds()));
-    QObject::connect(ui->sb_pos_y, SIGNAL (valueChanged(double)), this, SLOT (onChangeImgBounds()));
-    QObject::connect(ui->sb_scale, SIGNAL (valueChanged(double)), this, SLOT (onChangeImgBounds()));
+    connect(ui->sb_pos_x, SIGNAL (valueChanged(double)), this, SLOT (onChangeImgBounds()));
+    connect(ui->sb_pos_y, SIGNAL (valueChanged(double)), this, SLOT (onChangeImgBounds()));
+    connect(ui->sb_scale, SIGNAL (valueChanged(double)), this, SLOT (onChangeImgBounds()));
 
-    QObject::connect(ui->b_pen_updown, SIGNAL (clicked()), this, SLOT (onClickPenUpDown()));
-    QObject::connect(ui->b_move_down, SIGNAL (clicked()), this, SLOT (onClickMoveDown()));
-    QObject::connect(ui->b_move_left, SIGNAL (clicked()), this, SLOT (onClickMoveLeft()));
-    QObject::connect(ui->b_move_right, SIGNAL (clicked()), this, SLOT (onClickMoveRight()));
-    QObject::connect(ui->b_move_up, SIGNAL (clicked()), this, SLOT (onClickMoveUp()));
-    QObject::connect(ui->b_calib, SIGNAL (clicked()), this, SLOT (onClickCalibrate()));
-    QObject::connect(ui->b_set_speed, SIGNAL (clicked()), this, SLOT (onClickSetSpeed()));
-
+    connect(ui->b_pen_updown, SIGNAL (clicked()), this, SLOT (onClickPenUpDown()));
+    connect(ui->b_move_down, SIGNAL (clicked()), this, SLOT (onClickMoveDown()));
+    connect(ui->b_move_left, SIGNAL (clicked()), this, SLOT (onClickMoveLeft()));
+    connect(ui->b_move_right, SIGNAL (clicked()), this, SLOT (onClickMoveRight()));
+    connect(ui->b_move_up, SIGNAL (clicked()), this, SLOT (onClickMoveUp()));
+    connect(ui->b_calib, SIGNAL (clicked()), this, SLOT (onClickCalibrate()));
+    connect(ui->b_set_speed, SIGNAL (clicked()), this, SLOT (onClickSetSpeed()));
+    connect(ui->b_execute,SIGNAL(clicked()),this,SLOT(onClickExecuteCmdFile()));
     connect(&serialPort, SIGNAL(readyRead()), this, SLOT(onTimerReadSerial()));
+    connect(ui->b_simulate,SIGNAL(clicked()),this,SLOT(onClickSimulateCmdFile()));
 
     timer = new QTimer();
     connect(timer,SIGNAL(timeout()),this,SLOT(onPollPosition()));
     //timer->start(5000);
     cmdListExec = new CommandListExecutor(&serialPort);
+
+    connect(cmdListExec,SIGNAL(onExecutionAborted()),this,SLOT(onCmdExecFinished()));
+    connect(cmdListExec,SIGNAL(onExecutionFinished()),this,SLOT(onCmdExecFinished()));
+    connect(cmdListExec,SIGNAL(onSendCommand(QString)),this,SLOT(sendCmd(QString)));
+    connect(this,SIGNAL(onStopCmdExec()),cmdListExec,SLOT(stop()));
+    connect(this,SIGNAL(onSerialAnswerRecieved(QString)),cmdListExec,SLOT(onRecieveAnswer(QString)));
+    connect(this,SIGNAL(onExecCmdList(QStringList)),cmdListExec,SLOT(executeCmdList(QStringList)));
 
     ui->vp_plotterRenderer->setPlotterSize(600,700);
     ui->sb_pos_x->setMaximum(600);
@@ -135,12 +143,8 @@ void MainWindow::onSubmitCmd()
 {
     QString msg = ui->le_command->text();
     msg.append("\n");
-    int sz = serialPort.write(msg.toLatin1());
-    printStatus(QString("Sent %1 bytes").arg(sz));
-    if(sz<msg.length())
-    {
-        printStatus(QString("Failed to write all data (only %1 of %2 bytes)").arg(sz).arg(msg.length()),true);
-    }
+    sendCmd(msg);
+
     ui->le_command->setText("");
 }
 
@@ -153,18 +157,23 @@ void MainWindow::onTimerReadSerial()
     if(!serialPort.isOpen())
         return;
 
-    QByteArray data = serialPort.readAll();
+    while(serialPort.canReadLine()){
+        QByteArray data = serialPort.readLine();
+        if(data.length() > 0){
+            ui->te_output->moveCursor (QTextCursor::End);
 
-    if(data.length() > 0){
-        ui->te_output->moveCursor (QTextCursor::End);
+            QTextEdit textEdit;
+            textEdit.setPlainText(QString(data));
+            QString ret = textEdit.toHtml();
 
-        QTextEdit textEdit;
-        textEdit.setPlainText(QString(data));
-        QString ret = textEdit.toHtml();
+            ui->te_output->insertHtml(QString("<font color=\"black\">%1</font>").arg(ret));
+            ui->te_output->moveCursor (QTextCursor::End);
 
-        ui->te_output->insertHtml(QString("<font color=\"black\">%1</font>").arg(ret));
-        ui->te_output->moveCursor (QTextCursor::End);
+            // Send data to cmd executor
+            emit onSerialAnswerRecieved(QString(data));
+        }
     }
+
 }
 
 void MainWindow::onClickLeftUp(){}
@@ -193,19 +202,22 @@ void MainWindow::onClickMoveDown(){
 }
 void MainWindow::onClickPenUpDown(){
     if(ui->b_pen_updown->text().compare("Pen Down")==0){
-        if(sendCmd("M3\n"))
-            ui->b_pen_updown->setText("Pen Up");
+        sendCmd("M3\n");
+        ui->b_pen_updown->setText("Pen Up");
     }else{
-        if(sendCmd("M4\n"))
-            ui->b_pen_updown->setText("Pen Down");
+        sendCmd("M4\n");
+        ui->b_pen_updown->setText("Pen Down");
     }
 }
 void MainWindow::onClickSetSpeed(){
     float speed = ui->sb_speed->value();
     sendCmd(QString("G0 F%1\n   ").arg(speed));
 }
+void MainWindow::onCmdExecFinished(){
+    ui->b_execute->setText("Execute");
+}
 
-bool MainWindow::sendCmd(QString msg){
+void MainWindow::sendCmd(QString msg){
 
     ui->te_output->moveCursor (QTextCursor::End);
     QTextEdit textEdit;
@@ -214,14 +226,12 @@ bool MainWindow::sendCmd(QString msg){
     ui->te_output->insertHtml(QString("<font color=\"blue\">%1</font>").arg(ret));
     ui->te_output->moveCursor (QTextCursor::End);
 
-    int sz = serialPort.write(msg.toLatin1());
+    int sz = serialPort.write(msg.toLocal8Bit());
 
     if(sz<msg.length())
     {
         printStatus(QString("Failed to write all data (only %1 of %2 bytes)").arg(sz).arg(msg.length()),true);
-        return false;
     }
-    return true;
 }
 void MainWindow::onClickCalibrate()
 {
@@ -260,12 +270,17 @@ void MainWindow::onClickOpenCmdFile()
 
 void MainWindow::onClickExecuteCmdFile()
 {
-    if(ui->b_execute->text().compare("Execute")){
+    if(ui->b_execute->text().compare("Execute") == 0){
         QStringList cmds = ui->te_comand_script->toPlainText().split("\n");
-        cmdListExec->executeCmdList(cmds);
+        emit onExecCmdList(cmds);
         ui->b_execute->setText("Stop execution");
     }else{
-        cmdListExec->stop();
+        emit onStopCmdExec();
         ui->b_execute->setText("Execute");
     }
+}
+void MainWindow::onClickSimulateCmdFile()
+{
+    QStringList cmds = ui->te_comand_script->toPlainText().split("\n");
+    ui->vp_plotterRenderer->simulateCommands(cmds);
 }
