@@ -3,7 +3,6 @@
 VPlotterRenderer::VPlotterRenderer(QWidget *parent):QGraphicsView(new QGraphicsScene(),parent)
 {
     p_scene = scene();
-    //setBackgroundBrush(Qt::black);
 
     imgItem = p_scene->addPixmap(QPixmap());
     imgItem->setPos(0,0);
@@ -17,7 +16,6 @@ void VPlotterRenderer::simulateCommands(QStringList cmds)
     QPixmap pixmap(p_scene->width(),p_scene->height());
     pixmap.fill(Qt::transparent);
     QPainter painter(&pixmap);
-    //painter.setBackground(QBrush(QColor(255,255,255,255)));
     QPen Black((QColor(0,0,0)),2);  // Drawing
     QPen Red((QColor(255,0,0)),2);  // Not Drawing
     painter.setPen(Red);

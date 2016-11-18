@@ -16,8 +16,8 @@
 // Full steps necessary for a single rotation
 #define STEPPER_STEPS_PER_REVOLUTION 200
 // Speed of timer0, used for servo positioning and stepper control
-#define TIMER1_US_PER_INTERRUPT 100
-#define SPEED_MULTIPLIER 2
+#define TIMER1_US_PER_INTERRUPT 150
+#define SPEED_MULTIPLIER 4
 
 // Pin layout
 #define PIN_DIR_LEFT 6
@@ -64,19 +64,21 @@ struct hardware_state_t
   float base;
 
   // Variables for bresenham
-  int32_t err,es,el;
-  int32_t s[STP_CNT],dp[STP_CNT],dd[STP_CNT];
+  int32_t err;
+  int32_t s[STP_CNT];
   int32_t dSteps[STP_CNT];
-  bool moveing;
 
   // motor position
   int32_t motor_pos[STP_CNT];
+  // target motor position
   int32_t motor_pos_target[STP_CNT];
 
+  // Delay since last posiion change, used to wait a predefined time
+  // until next cmd is executed
   uint32_t servo_move_delay;
-  // Time since last servo signal
+  // Servo pulse -> Defines servo position
   uint32_t servo_signal_length_us;
-  // Servo up-time in microseconds -> Defines servo position
+  // Time since last servo pulse start
   uint32_t us_since_servo_period;
 };
 
@@ -100,8 +102,6 @@ void hw_ctrl_init()
 {
 
   for(int i = 0; i < STP_CNT; i++){
-    hw_state.dd[i] = 0;
-    hw_state.dp[i] = 0;
     hw_state.dSteps[i] = 0;
     hw_state.motor_pos[i] = 0;
     hw_state.motor_pos_target[i] = 0;
@@ -109,10 +109,7 @@ void hw_ctrl_init()
   }
 
   hw_state.base = 0;
-  hw_state.el = 0;
   hw_state.err = 0;
-  hw_state.es = 0;
-  hw_state.moveing = false;
   hw_state.servo_move_delay = 0;
   hw_state.us_since_servo_period = 0;
   hw_state.state = START;
@@ -139,11 +136,11 @@ void hw_ctrl_init()
   // Prescaler 8 -> 16000000Hz/8 =2000000Hz
   // 1000/2000000Hz = 0,0005ms per Tick
   // 0,0005ms*256 = 0,128 ms per Overflow
-  TCCR2A = 0;
+  //TCCR2A = 0;
   // Prescaler 8
-  TCCR2B = (1 << CS21);
+  //TCCR2B = (1 << CS21);
   // Enable overflow interrupt
-  TIMSK2 = (1 << TOIE2);
+  //TIMSK2 = (1 << TOIE2);
 
 }
 
@@ -219,12 +216,21 @@ void hw_ctrl_execute_motion(float x, float y) {
 }
 
 void hw_ctrl_timer_callback() {
+
+      // 128 us per timer overflow
+      hw_state.us_since_servo_period += TIMER1_US_PER_INTERRUPT;
+
+      if (hw_state.us_since_servo_period >= SERVO_US_FULL_PHASE) {
+        hw_state.us_since_servo_period = 0;
+        digitalWrite(PIN_SERVO, 1);
+      } else if (hw_state.us_since_servo_period > hw_state.servo_signal_length_us) {
+        digitalWrite(PIN_SERVO, 0);
+      }
+
   switch (hw_state.state) {
-    case START:
-    case IDLE:
-      break;
     case MOVING:
     {
+        for(int i = 0; i < SPEED_MULTIPLIER; i++){
         // Motion finished ?
         if(hw_state.motor_pos[STP_LEFT] == hw_state.motor_pos_target[STP_LEFT] &&
           hw_state.motor_pos[STP_RIGHT] == hw_state.motor_pos_target[STP_RIGHT])
@@ -247,32 +253,7 @@ void hw_ctrl_timer_callback() {
           digitalWrite(PIN_STEP_RIGHT, 0);
           hw_state.motor_pos[STP_RIGHT] += hw_state.s[STP_RIGHT];
         }
-        /**
-        // Bresenham line algorithm
-        hw_state.err -= 2*hw_state.es;
-        if(hw_state.err < 0){
-          hw_state.err += 2*hw_state.el;
-          digitalWrite(PIN_STEP_LEFT, 1);
-          digitalWrite(PIN_STEP_LEFT, 0);
-          hw_state.motor_pos[STP_LEFT] += hw_state.dd[STP_LEFT];
-
-          digitalWrite(PIN_STEP_RIGHT, 1);
-          digitalWrite(PIN_STEP_RIGHT, 0);
-          hw_state.motor_pos[STP_RIGHT] += hw_state.dd[STP_RIGHT];
-
-        }else{
-          if(hw_state.dp[STP_LEFT] != 0){
-            digitalWrite(PIN_STEP_LEFT, 1);
-            digitalWrite(PIN_STEP_LEFT, 0);
-            hw_state.motor_pos[STP_LEFT] += hw_state.dp[STP_LEFT];
-          }
-          if(hw_state.dp[STP_RIGHT] != 0){
-            digitalWrite(PIN_STEP_RIGHT, 1);
-            digitalWrite(PIN_STEP_RIGHT, 0);
-            hw_state.motor_pos[STP_RIGHT] += hw_state.dp[STP_RIGHT];
-          }
-        }
-        */
+      }
     }
     break;
   case WAIT_SERVO:
@@ -281,6 +262,8 @@ void hw_ctrl_timer_callback() {
       hw_state.state = IDLE;
     }
     break;
+  default:
+      break;
   }
 }
 
@@ -317,16 +300,7 @@ void hw_ctrl_convert_point_to_length(float x, float y, float* L, float* R){
 }
 
 // ISR for servo positioning
-ISR(TIMER2_OVF_vect){
-    // 128 us per timer overflow
-    hw_state.us_since_servo_period += 128;
-
-    if (hw_state.us_since_servo_period >= SERVO_US_FULL_PHASE) {
-      hw_state.us_since_servo_period = 0;
-      digitalWrite(PIN_SERVO, 1);
-    } else if (hw_state.us_since_servo_period > hw_state.servo_signal_length_us) {
-      digitalWrite(PIN_SERVO, 0);
-    }
-}
+//ISR(TIMER2_OVF_vect){
+//}
 
 #endif

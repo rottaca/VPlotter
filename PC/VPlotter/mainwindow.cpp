@@ -116,8 +116,9 @@ void MainWindow::onClickConnect()
         ui->le_command->setEnabled(false);
         ui->gb_calibration->setEnabled(false);
         ui->gb_manual->setEnabled(false);
-        ui->gb_cmd_edit->setEnabled(false);
+        ui->b_execute->setEnabled(false);
         timer->stop();
+        cmdListExec->stop();
         return;
     }
     QString port = ui->le_portName->text();
@@ -132,7 +133,7 @@ void MainWindow::onClickConnect()
         ui->le_command->setEnabled(true);
         ui->gb_calibration->setEnabled(true);
         ui->gb_manual->setEnabled(true);
-        ui->gb_cmd_edit->setEnabled(true);
+        ui->b_execute->setEnabled(true);
         ui->te_output->clear();
 
         QString msg = QString("Connection to %1 successful!").arg(port);
