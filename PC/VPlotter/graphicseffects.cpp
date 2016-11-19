@@ -96,3 +96,23 @@ QImage GraphicsEffects::applySobel(QImage &input)
 
     return output;
 }
+QImage GraphicsEffects::applyBinarize(QImage &input, uchar threshold, uchar below, uchar aboveAndEq)
+{
+    if(input.format() != QImage::Format_Grayscale8)
+        return QImage();
+
+    QImage output(input.size(),QImage::Format_Grayscale8);
+
+    uchar* inPtr = input.scanLine(0);
+    uchar* outPtr = output.scanLine(0);
+
+    for (int i = 0; i < input.height()*input.width(); i++) {
+        uchar v = inPtr[i];
+        if(v<threshold){
+            outPtr[i] = below;
+        }else{
+            outPtr[i] = aboveAndEq;
+        }
+    }
+    return output;
+}

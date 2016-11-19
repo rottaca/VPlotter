@@ -11,6 +11,8 @@ namespace Ui {
 class MainWindow;
 }
 
+class ConvertForm;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -20,6 +22,8 @@ public:
     ~MainWindow();
 
     void printStatus(QString msg, bool error=false);
+    void setCommandList(QStringList cmds, bool autoSimulate=false);
+    void setPreprocessedImage(QImage img);
 
 public slots:
     void sendCmd(QString msg);
@@ -44,6 +48,9 @@ public slots:
     void onClickExecuteCmdFile();
     void onClickSimulateCmdFile();
     void onCmdExecFinished();
+    void onChangeRenderOptions();
+    void onSimulationFinished();
+    void onClickConvert();
 
 signals:
     void onSerialAnswerRecieved(QString);
@@ -57,6 +64,8 @@ private:
     ImageConverter imgConverter;
     QTimer* timer;
     CommandListExecutor* cmdListExec;
+    ConvertForm* convertForm;
+
 };
 
 #endif // MAINWINDOW_H

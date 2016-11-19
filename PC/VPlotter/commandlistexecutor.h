@@ -27,6 +27,7 @@ public slots:
 
 private:
     void sendCmd(QString str);
+
 private:
     QSerialPort* serial;
     QThread workerThread;
@@ -34,7 +35,8 @@ private:
     int currCmdIdx;
     bool executingCmds;
     QTimer* timeoutTimer;
-
+    int cmdsPending;
+    int clientCmdBufferSize;
 };
 
 #endif // COMMANDLISTEXECUTOR_H

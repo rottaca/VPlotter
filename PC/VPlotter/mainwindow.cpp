@@ -6,6 +6,7 @@
 #include <QTimer>
 
 #include "graphicseffects.h"
+#include "convertform.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -31,6 +32,11 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->b_execute,SIGNAL(clicked()),this,SLOT(onClickExecuteCmdFile()));
     connect(&serialPort, SIGNAL(readyRead()), this, SLOT(onTimerReadSerial()));
     connect(ui->b_simulate,SIGNAL(clicked()),this,SLOT(onClickSimulateCmdFile()));
+    connect(ui->cb_nondrawing,SIGNAL(clicked()),this,SLOT(onChangeRenderOptions()));
+    connect(ui->cb_penUD,SIGNAL(clicked()),this,SLOT(onChangeRenderOptions()));
+    connect(ui->vp_plotterRenderer,SIGNAL(onSimulationFinished()),this,SLOT(onSimulationFinished()));
+    connect(ui->b_convert,SIGNAL(clicked()),this,SLOT(onClickConvert()));
+    connect(ui->b_load_cmdFile,SIGNAL(clicked()),this,SLOT(onClickOpenCmdFile()));
 
     timer = new QTimer();
     connect(timer,SIGNAL(timeout()),this,SLOT(onPollPosition()));
@@ -47,6 +53,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->vp_plotterRenderer->setPlotterSize(600,700);
     ui->sb_pos_x->setMaximum(600);
     ui->sb_pos_y->setMaximum(700);
+
+    convertForm = new ConvertForm(this);
 }
 
 MainWindow::~MainWindow()
@@ -71,6 +79,18 @@ void MainWindow::printStatus(QString msg, bool error)
     ui->te_output->insertHtml(html);
     ui->te_output->moveCursor (QTextCursor::End);
 }
+void MainWindow::setCommandList(QStringList cmds, bool autoSimulate)
+{
+    ui->te_comand_script->setPlainText(cmds.join("\n"));
+    ui->l_editor_lines_of_code->setText(QString("%1").arg(cmds.length()));
+    if(autoSimulate)
+        onClickSimulateCmdFile();
+}
+
+void MainWindow::setPreprocessedImage(QImage img)
+{
+    ui->vp_plotterRenderer->setPreprocessedImage(img);
+}
 
 void MainWindow::onClickOpenFile()
 {
@@ -84,21 +104,26 @@ void MainWindow::onClickOpenFile()
     {
         printStatus(QString("Can't open image: %1").arg(file),true);
         ui->gb_imageConvert->setEnabled(false);
-        ui->vp_plotterRenderer->setImage(QImage());
+        ui->vp_plotterRenderer->setRawImage(QImage());
+        ui->vp_plotterRenderer->setPreprocessedImage(QImage());
         ui->vp_plotterRenderer->setImageBounds(0,0,0);
 
         return;
     }
     // Only use grayscale images
     currentImage = currentImage.convertToFormat(QImage::Format_Grayscale8);
-    currentImage = GraphicsEffects::applyBlur(currentImage);
-    currentImage = GraphicsEffects::applySobel(currentImage);
+    //currentImage = GraphicsEffects::applyBlur(currentImage);
+    //currentImage = GraphicsEffects::applySobel(currentImage);
+    //currentImage = GraphicsEffects::applyBinarize(currentImage,50,255,0);
 
-
-    ui->vp_plotterRenderer->setImage(currentImage);
+    ui->vp_plotterRenderer->setRawImage(currentImage);
+    ui->vp_plotterRenderer->setPreprocessedImage(QImage());
     float scale = std::min(ui->vp_plotterRenderer->getPlotterSize().x()/currentImage.width(),
                       ui->vp_plotterRenderer->getPlotterSize().y()/currentImage.height());
     ui->vp_plotterRenderer->setImageBounds(scale,0,0);
+    convertForm->setImageInfo(currentImage,
+                            QVector2D(0,0),scale);
+    ui->vp_plotterRenderer->simulateCommands(QStringList());
 
     ui->sb_scale->setValue(scale);
     ui->sb_pos_x->setValue(0);
@@ -152,6 +177,9 @@ void MainWindow::onSubmitCmd()
 void MainWindow::onChangeImgBounds()
 {
     ui->vp_plotterRenderer->setImageBounds(ui->sb_scale->value(),ui->sb_pos_x->value(),ui->sb_pos_y->value());
+    convertForm->setImageInfo(currentImage,
+                              QVector2D(ui->sb_pos_x->value(),ui->sb_pos_y->value()),
+                              ui->sb_scale->value());
 }
 void MainWindow::onTimerReadSerial()
 {
@@ -174,7 +202,6 @@ void MainWindow::onTimerReadSerial()
             emit onSerialAnswerRecieved(QString(data));
         }
     }
-
 }
 
 void MainWindow::onClickLeftUp(){}
@@ -266,7 +293,7 @@ void MainWindow::onClickOpenCmdFile()
         return;
     }
     QString txt = file.readAll();
-    ui->te_comand_script->setText(txt);
+    ui->te_comand_script->setPlainText(txt);
 }
 
 void MainWindow::onClickExecuteCmdFile()
@@ -282,6 +309,25 @@ void MainWindow::onClickExecuteCmdFile()
 }
 void MainWindow::onClickSimulateCmdFile()
 {
-    QStringList cmds = ui->te_comand_script->toPlainText().split("\n");
-    ui->vp_plotterRenderer->simulateCommands(cmds);
+    if(ui->b_simulate->text().compare("Simulate") == 0){
+        QStringList cmds = ui->te_comand_script->toPlainText().split("\n");
+        ui->vp_plotterRenderer->simulateCommands(cmds);
+        ui->b_simulate->setText("Stop Simulation");
+    }else{
+        ui->vp_plotterRenderer->abortSimulation();
+    }
+}
+void MainWindow::onChangeRenderOptions()
+{
+    ui->vp_plotterRenderer->setRenderOptions(ui->cb_nondrawing->isChecked(),
+                                             ui->cb_penUD->isChecked());
+}
+void MainWindow::onSimulationFinished()
+{
+    ui->b_simulate->setText("Simulate");
+}
+
+void MainWindow::onClickConvert()
+{
+    convertForm->show();
 }

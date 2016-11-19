@@ -19,6 +19,6 @@ The firmware supports currently only some basic commands.
 ### MCodes
 - M3                  -> Lift pen (don't draw)
 - M4                  -> Move pen down (draw)
-- M5 B\_ L\_ R\_         -> Calibrates the hardware control, Defines a - baselength B and left and right cord length.
+- M5 B\_ L\_ R\_      -> Calibrates the hardware. Defines baselength B and left and right cord length.
 - M7                  -> Debug output
 - M8                  -> Get current position (X Y)

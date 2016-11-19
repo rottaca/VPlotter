@@ -11,6 +11,7 @@ public:
 
     static QImage applyBlur(QImage &input);
     static QImage applySobel(QImage &input);
+    static QImage applyBinarize(QImage &input, uchar threshold, uchar below = 0, uchar aboveAndEq = 255);
 };
 
 #endif // GRAPHICSEFFECTS_H

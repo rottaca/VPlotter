@@ -17,12 +17,17 @@ SOURCES += main.cpp\
     imageconverter.cpp \
     vplotterrenderer.cpp \
     graphicseffects.cpp \
-    commandlistexecutor.cpp
+    commandlistexecutor.cpp \
+    convertform.cpp \
+    convertimagealgorithms.cpp
 
 HEADERS  += mainwindow.h \
     imageconverter.h \
     vplotterrenderer.h \
     graphicseffects.h \
-    commandlistexecutor.h
+    commandlistexecutor.h \
+    convertform.h \
+    convertimagealgorithms.h
 
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+    convertform.ui

@@ -10,8 +10,10 @@ CommandListExecutor::CommandListExecutor(QSerialPort* port){
     timeoutTimer->setInterval(2000);
     timeoutTimer->setSingleShot(true);
     connect(timeoutTimer,SIGNAL(timeout()),this,SLOT(onTimeout()));
-
+    cmdsPending = 0;
+    clientCmdBufferSize = 10;
 }
+
 CommandListExecutor::~CommandListExecutor(){
     executingCmds = false;
     workerThread.quit();
@@ -35,19 +37,21 @@ void CommandListExecutor::onRecieveAnswer(QString answ)
         return;
 
     timeoutTimer->stop();
+
     // Busy ? wait for ack
     if(answ.contains("BUSY"))
         return;
 
-    // Ack recieved ? Ack:0 or error code is unimportant.
-    // Just execute file
+    // Ack recieved?
     if(answ.contains("ACK")){
         if(!answ.contains("ACK: 0")){
             qDebug("Error!");
             stop();
         }
+        // command was executed
+        cmdsPending--;
 
-        if(currCmdIdx < cmdList.size()){
+        if(currCmdIdx < cmdList.size() && cmdsPending < clientCmdBufferSize){
             qDebug((QString("Send Next: ") + cmdList.at(currCmdIdx).toLocal8Bit()).toLocal8Bit());
             sendCmd(cmdList.at(currCmdIdx++));
         }
@@ -73,6 +77,8 @@ void CommandListExecutor::stop(){
 }
 void CommandListExecutor::sendCmd(QString str)
 {
+    // command queued in controller
+    cmdsPending++;
     emit onSendCommand(str);
     //timeoutTimer->start();
 }

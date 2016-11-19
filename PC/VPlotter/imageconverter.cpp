@@ -1,6 +1,6 @@
 #include "imageconverter.h"
 
-ImageConverter::ImageConverter()
+QStringList ImageConverter::convertImage(QImage input)
 {
 
 }
