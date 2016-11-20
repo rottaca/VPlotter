@@ -34,7 +34,7 @@ void ConvertForm::onClickConvert()
             cmds = ConvertImageAlgorithms::convertLines(preproImg,
                                                         ui->cb_line_dir->currentIndex()*45,
                                                         ui->hs_lines_threshold->value(),
-                                                        ui->hs_lines_sampling->value(),
+                                                        ui->hs_lines_sampling->value()/imgScale,
                                                         imgPos,imgScale);
             break;
         }
@@ -47,7 +47,7 @@ void ConvertForm::onClickConvert()
             cmds = ConvertImageAlgorithms::convertMultiLines(preproImg,
                                                              draws,
                                                              ui->cb_multiline_map->isChecked(),
-                                                             ui->hs_multilines_sampling->value(),
+                                                             ui->hs_multilines_sampling->value()/imgScale,
                                                              imgPos,imgScale);
         }
         break;
@@ -86,6 +86,14 @@ void ConvertForm::onClickApplyPreprocessing()
             int threshold = ui->hs_binarize_threshold->value();
             bool inv = ui->cb_binarize_invert->isChecked();
             preproImg = GraphicsEffects::applyBinarize(img,threshold,inv?255:0,inv?0:255);
+            break;
+        }
+        case 3:{
+            int min = ui->sb_stretch_min->value();
+            int max = ui->sb_stretch_max->value();
+            bool automatic = ui->cb_stretch_auto->isChecked();
+            float quantile = ui->sb_stretch_quantile->value();
+            preproImg = GraphicsEffects::applyStretch(img,automatic,quantile, min,max);
             break;
         }
         default:

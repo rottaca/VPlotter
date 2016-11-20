@@ -2,6 +2,9 @@
 
 VPlotterRenderer::VPlotterRenderer(QWidget *parent):QGraphicsView(new QGraphicsScene(),parent)
 {
+    zoom = new Graphics_view_zoom(this);
+    zoom->set_modifiers(Qt::NoModifier);
+
     p_scene = scene();
 
     rawImgItem = p_scene->addPixmap(QPixmap());
@@ -12,7 +15,7 @@ VPlotterRenderer::VPlotterRenderer(QWidget *parent):QGraphicsView(new QGraphicsS
 
     renderPenUD = true;
     renderNonDrawMove = true;
-
+    showItems(RAW);
     connect(&simulationTimer,SIGNAL(timeout()),this,SLOT(onSimulationTimerOverflow()));
 }
 

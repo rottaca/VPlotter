@@ -3,10 +3,6 @@
 #include <cmath>
 
 
-GraphicsEffects::GraphicsEffects()
-{
-
-}
 
 QImage GraphicsEffects::applyBlur(QImage &input)
 {
@@ -103,16 +99,84 @@ QImage GraphicsEffects::applyBinarize(QImage &input, uchar threshold, uchar belo
 
     QImage output(input.size(),QImage::Format_Grayscale8);
 
-    uchar* inPtr = input.scanLine(0);
-    uchar* outPtr = output.scanLine(0);
 
-    for (int i = 0; i < input.height()*input.width(); i++) {
-        uchar v = inPtr[i];
-        if(v<threshold){
-            outPtr[i] = below;
-        }else{
-            outPtr[i] = aboveAndEq;
+    for (int y = 0; y < input.height(); y++) {
+        uchar* inPtr = input.scanLine(y);
+        uchar* outPtr = output.scanLine(y);
+        for (int x = 0; x < input.width(); x++) {
+            uchar v = inPtr[x];
+            if(v<threshold){
+                outPtr[x] = below;
+            }else{
+                outPtr[x] = aboveAndEq;
+            }
         }
     }
     return output;
+}
+
+QImage GraphicsEffects::applyStretch(QImage &input,bool automatic, float quantile,int min, int max)
+{
+    if(input.format() != QImage::Format_Grayscale8)
+        return QImage();
+
+    QImage output(input.size(),QImage::Format_Grayscale8);
+
+    if(automatic){
+        QVector<int> hist = computeHist(input);
+        min = 0;
+        max = 255;
+        int minSum = 0;
+        int maxSum = 0;
+        int w = input.width();
+        int h = input.height();
+        while(true){
+            minSum += hist[min];
+            if(minSum>= w*h*quantile || min >255)
+                break;
+            min++;
+        }
+        while(true){
+            maxSum += hist[max];
+            if(maxSum>= w*h*quantile || max <0)
+                break;
+
+            max--;
+        }
+    }
+    qDebug(QString("Min: %1 \n Max: %2").arg(min).arg(max).toLocal8Bit());
+
+    if(min >= max){
+        qDebug("Stretch failed!");
+        return output;
+    }
+
+    for (int y = 0; y < input.height(); y++) {
+        uchar* inPtr = input.scanLine(y);
+        uchar* outPtr = output.scanLine(y);
+        for (int x = 0; x < input.width(); x++) {
+            uchar v = inPtr[x];
+            if(v<=min){
+                outPtr[x] = 0;
+            }else if(v>=max){
+                outPtr[x] = 255;
+            }else{
+                outPtr[x] = 255*(v-min)/(max-min);
+            }
+        }
+    }
+    return output;
+}
+QVector<int> GraphicsEffects::computeHist(QImage &input)
+{
+    QVector<int> vec(256,0);
+    for (int y = 0; y < input.height(); y++) {
+        uchar* inPtr = input.scanLine(y);
+        for (int x = 0; x < input.width(); x++) {
+            uchar v = inPtr[x];
+            vec[v]++;
+        }
+    }
+
+    return vec;
 }

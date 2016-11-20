@@ -11,6 +11,7 @@
 #include <QLine>
 #include <QTimer>
 
+#include "graphics_view_zoom.h"
 class VPlotterRenderer : public QGraphicsView
 {
     Q_OBJECT
@@ -48,6 +49,21 @@ public:
         simulateCommands(cmds);
     }
 
+    enum DisplayMode{RAW,PREPROC,SIMULATION};
+    void showItems(enum DisplayMode mode){
+        dispMode = mode;
+        rawImgItem->setVisible(false);
+        preprocessedImgItem->setVisible(false);
+        imgItemSimulation->setVisible(false);
+        if(mode == RAW){
+            rawImgItem->setVisible(true);
+        }else if(mode == PREPROC){
+            preprocessedImgItem->setVisible(true);
+        }else{
+            imgItemSimulation->setVisible(true);
+        }
+    }
+
 public slots:
     void onSimulationTimerOverflow();
     void simulateCommands(QStringList cmds);
@@ -61,6 +77,7 @@ private:
 
 
 private:
+    Graphics_view_zoom* zoom;
     QGraphicsPixmapItem* rawImgItem;
     QGraphicsPixmapItem* preprocessedImgItem;
     QGraphicsRectItem* plotterRectItem;
@@ -80,7 +97,7 @@ private:
     bool drawing;
     bool absolutePositioning;
     QVector2D pos; // Start postion 0,0
-
+    enum DisplayMode dispMode;
 };
 
 #endif // VPLOTTERRENDERER_H

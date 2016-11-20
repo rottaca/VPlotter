@@ -26,6 +26,7 @@ public:
         imgPos = pos;
         imgScale = scale;
         preproImg = img;
+        onClickApplyPreprocessing();
     }
 
 public slots:

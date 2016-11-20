@@ -19,7 +19,8 @@ SOURCES += main.cpp\
     graphicseffects.cpp \
     commandlistexecutor.cpp \
     convertform.cpp \
-    convertimagealgorithms.cpp
+    convertimagealgorithms.cpp \
+    graphics_view_zoom.cpp
 
 HEADERS  += mainwindow.h \
     imageconverter.h \
@@ -27,7 +28,8 @@ HEADERS  += mainwindow.h \
     graphicseffects.h \
     commandlistexecutor.h \
     convertform.h \
-    convertimagealgorithms.h
+    convertimagealgorithms.h \
+    graphics_view_zoom.h
 
 FORMS    += mainwindow.ui \
     convertform.ui

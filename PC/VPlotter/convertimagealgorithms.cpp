@@ -10,7 +10,7 @@ QStringList ConvertImageAlgorithms::convertLines(QImage img, int angle, int thre
 
     int w = img.width();
     int h = img.height();
-    int scanLineWidth = w + (4 - w % 4);
+    int scanLineWidth = img.bytesPerLine();
     int sz = w*h;
     int dirX,dirY;
 
@@ -36,7 +36,7 @@ QStringList ConvertImageAlgorithms::convertLines(QImage img, int angle, int thre
     if(dirY != 0){
         bool drawing = false;
         for(int x = 0; x <w; x+= sampling){
-            uchar* imgPtr = img.scanLine(0)+x;
+            uchar* imgPtr = img.bits()+x;
             QVector2D posCurr(x,0);
             while(1){
                 uchar c = *imgPtr;

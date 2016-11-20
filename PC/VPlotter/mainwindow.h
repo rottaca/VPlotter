@@ -51,7 +51,7 @@ public slots:
     void onChangeRenderOptions();
     void onSimulationFinished();
     void onClickConvert();
-
+    void onClickShowRadio();
 signals:
     void onSerialAnswerRecieved(QString);
     void onStopCmdExec();

@@ -37,6 +37,9 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->vp_plotterRenderer,SIGNAL(onSimulationFinished()),this,SLOT(onSimulationFinished()));
     connect(ui->b_convert,SIGNAL(clicked()),this,SLOT(onClickConvert()));
     connect(ui->b_load_cmdFile,SIGNAL(clicked()),this,SLOT(onClickOpenCmdFile()));
+    connect(ui->rb_show_preproc,SIGNAL(clicked()),this,SLOT(onClickShowRadio()));
+    connect(ui->rb_show_raw,SIGNAL(clicked()),this,SLOT(onClickShowRadio()));
+    connect(ui->rb_show_simulation,SIGNAL(clicked()),this,SLOT(onClickShowRadio()));
 
     timer = new QTimer();
     connect(timer,SIGNAL(timeout()),this,SLOT(onPollPosition()));
@@ -50,9 +53,11 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this,SIGNAL(onSerialAnswerRecieved(QString)),cmdListExec,SLOT(onRecieveAnswer(QString)));
     connect(this,SIGNAL(onExecCmdList(QStringList)),cmdListExec,SLOT(executeCmdList(QStringList)));
 
-    ui->vp_plotterRenderer->setPlotterSize(600,700);
-    ui->sb_pos_x->setMaximum(600);
-    ui->sb_pos_y->setMaximum(700);
+    float b = ui->sb_calib_base->value();
+    float h = ui->sb_calib_height->value();
+    ui->vp_plotterRenderer->setPlotterSize(b,h);
+    ui->sb_pos_x->setMaximum(b);
+    ui->sb_pos_y->setMaximum(h);
 
     convertForm = new ConvertForm(this);
 }
@@ -83,13 +88,18 @@ void MainWindow::setCommandList(QStringList cmds, bool autoSimulate)
 {
     ui->te_comand_script->setPlainText(cmds.join("\n"));
     ui->l_editor_lines_of_code->setText(QString("%1").arg(cmds.length()));
-    if(autoSimulate)
+    if(autoSimulate){
         onClickSimulateCmdFile();
+        ui->rb_show_simulation->setChecked(true);
+        ui->vp_plotterRenderer->showItems(VPlotterRenderer::SIMULATION);
+    }
 }
 
 void MainWindow::setPreprocessedImage(QImage img)
 {
     ui->vp_plotterRenderer->setPreprocessedImage(img);
+    ui->rb_show_preproc->setChecked(true);
+    ui->vp_plotterRenderer->showItems(VPlotterRenderer::PREPROC);
 }
 
 void MainWindow::onClickOpenFile()
@@ -128,8 +138,9 @@ void MainWindow::onClickOpenFile()
     ui->sb_scale->setValue(scale);
     ui->sb_pos_x->setValue(0);
     ui->sb_pos_y->setValue(0);
-
     ui->gb_imageConvert->setEnabled(true);
+    ui->rb_show_raw->setChecked(true);
+    ui->vp_plotterRenderer->showItems(VPlotterRenderer::RAW);
 }
 
 void MainWindow::onClickConnect()
@@ -264,9 +275,14 @@ void MainWindow::sendCmd(QString msg){
 void MainWindow::onClickCalibrate()
 {
     float b = ui->sb_calib_base->value();
+    float h = ui->sb_calib_height->value();
     float l = ui->sb_calib_left->value();
     float r = ui->sb_calib_right->value();
     sendCmd(QString("M5 B%1 L%2 R%3\n").arg(b).arg(l).arg(r));
+
+    ui->vp_plotterRenderer->setPlotterSize(b,h);
+    ui->sb_pos_x->setMaximum(b);
+    ui->sb_pos_y->setMaximum(h);
 }
 void MainWindow::onPollPosition(){
     serialPort.write("M8\n");
@@ -330,4 +346,15 @@ void MainWindow::onSimulationFinished()
 void MainWindow::onClickConvert()
 {
     convertForm->show();
+    convertForm->setFocus();
+}
+void MainWindow::onClickShowRadio()
+{
+    if(ui->rb_show_preproc->isChecked()){
+        ui->vp_plotterRenderer->showItems(VPlotterRenderer::PREPROC);
+    }else if(ui->rb_show_raw->isChecked()){
+        ui->vp_plotterRenderer->showItems(VPlotterRenderer::RAW);
+    }else{
+        ui->vp_plotterRenderer->showItems(VPlotterRenderer::SIMULATION);
+    }
 }
