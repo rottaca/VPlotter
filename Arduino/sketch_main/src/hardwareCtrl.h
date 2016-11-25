@@ -53,7 +53,7 @@
 // Macro to convert cord length into steps
 #define LENGTH_TO_STEPS_CONST ((double)STEPS_PER_REVOLUTION * MICRO_STEPPING)/(DIST_PER_REVOLUTION)
 #define STEPS_TO_LENGTH_CONST ((double)DIST_PER_REVOLUTION/(STEPS_PER_REVOLUTION*MICRO_STEPPING))
-#define LENGTH_TO_STEPS(l) ((double)l*LENGTH_TO_STEPS_CONST)
+#define LENGTH_TO_STEPS(l) ((uint32_t)round((double)l*LENGTH_TO_STEPS_CONST))
 #define STEPS_TO_LENGTH(s) ((double)s*STEPS_TO_LENGTH_CONST)
 
 // Clamps the value of v between min and max
