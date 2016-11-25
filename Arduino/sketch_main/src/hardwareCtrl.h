@@ -9,15 +9,17 @@
 #include <Arduino.h>
 #include "TimerOne.h"
 
-// Use microstepping multiplier
-#define MOTOR_MICRO_STEPPING 32
-// Length of cord per revolution in mm
-#define CORD_LENGTH_PER_REVOLUTION 50
+// Microstepping multiplier
+#define MICRO_STEPPING 32
 // Full steps necessary for a single rotation
-#define STEPPER_STEPS_PER_REVOLUTION 200
-// Speed of timer0, used for servo positioning and stepper control
+#define STEPS_PER_REVOLUTION 200
+// Length of cord per revolution in mm
+#define DIST_PER_REVOLUTION 50
+// Speed of timer1, used for servo positioning and stepper control
 #define TIMER1_US_PER_INTERRUPT 150
+// Speed multiplier for stepper motion
 #define SPEED_MULTIPLIER 1
+// Invert stepper direction
 #define INVERT_STEPPER_LEFT -1
 #define INVERT_STEPPER_RIGHT 1
 
@@ -41,13 +43,20 @@
 
 // Servo setup
 #define SERVO_US_FULL_PHASE 20000   // 20ms
-#define SERVO_US_POS_UP 1800        // 1.8ms
-#define SERVO_US_POS_DOWN 1000      // 1ms
-#define SERVO_MOVE_DELAY 250000      // Time for servo to reach position 20 ms
+// Non-drawing position
+#define SERVO_US_PEN_UP 1600        // 1.8ms
+// drawing position
+#define SERVO_US_PEN_DOWN 1150      // 1ms
+// Time for servo to reach position
+#define SERVO_MOVE_DELAY 200000
 
 // Macro to convert cord length into steps
-#define LENGTH_TO_STEPS(l) ((l)/(CORD_LENGTH_PER_REVOLUTION) * STEPPER_STEPS_PER_REVOLUTION * MOTOR_MICRO_STEPPING )
-#define STEPS_TO_LENGTH(s) ((s) *CORD_LENGTH_PER_REVOLUTION /(STEPPER_STEPS_PER_REVOLUTION * MOTOR_MICRO_STEPPING))
+#define LENGTH_TO_STEPS_CONST ((double)STEPS_PER_REVOLUTION * MICRO_STEPPING)/(DIST_PER_REVOLUTION)
+#define STEPS_TO_LENGTH_CONST ((double)DIST_PER_REVOLUTION/(STEPS_PER_REVOLUTION*MICRO_STEPPING))
+#define LENGTH_TO_STEPS(l) ((double)l*LENGTH_TO_STEPS_CONST)
+#define STEPS_TO_LENGTH(s) ((double)s*STEPS_TO_LENGTH_CONST)
+
+// Clamps the value of v between min and max
 #define CLAMP(V,MIN,MAX) ((V)<(MIN)?(MIN):((V)>(MAX)?(MAX):(V)))
 
 // Stepper names and cnt: 0,1,2
@@ -115,7 +124,7 @@ void hw_ctrl_init()
   hw_state.servo_move_delay = 0;
   hw_state.us_since_servo_period = 0;
   hw_state.state = START;
-  hw_state.servo_signal_length_us = SERVO_US_POS_UP;
+  hw_state.servo_signal_length_us = SERVO_US_PEN_UP;
 
   // Initialize hardware
   pinMode(PIN_DIR_LEFT, OUTPUT);
@@ -148,10 +157,10 @@ void hw_ctrl_init()
 
 bool hw_ctrl_set_drawing(bool drawing)
 {
-  if(hw_state.state != IDLE)
+  if(hw_state.state != IDLE && hw_state.state != START)
     return false;
 
-  uint32_t newPos = drawing?SERVO_US_POS_DOWN:SERVO_US_POS_UP;
+  uint32_t newPos = drawing?SERVO_US_PEN_DOWN:SERVO_US_PEN_UP;
   // Avoid unnecessary waits
   if(newPos == hw_state.servo_signal_length_us)
     return true;
@@ -177,7 +186,7 @@ bool hw_ctrl_calibrate(float base, float lengthL, float lengthR)
 
   hw_state.base = base;
   float x = (base * base + lengthL * lengthL - lengthR * lengthR) / (2 * base);
-  float y = sqrt(lengthR * lengthR - (hw_state.base - x) * (hw_state.base - x));
+  float y = sqrt(lengthR * lengthR - (base - x) * (base - x));
 
   if(x < X_MIN || x > X_MAX ||
      y < Y_MIN || y > Y_MAX)
@@ -203,6 +212,7 @@ void hw_ctrl_execute_motion(float x, float y) {
 
   float L,R;
   hw_ctrl_convert_point_to_length(x,y,&L,&R);
+
   hw_state.motor_pos_target[STP_LEFT] = LENGTH_TO_STEPS(L);
   hw_state.motor_pos_target[STP_RIGHT] = LENGTH_TO_STEPS(R);
   // Optimized and faster bresenham line algorithm
@@ -219,7 +229,6 @@ void hw_ctrl_execute_motion(float x, float y) {
 
   // Start motion
   hw_state.state = MOVING;
-
 }
 
 void hw_ctrl_timer_callback() {
@@ -251,15 +260,15 @@ void hw_ctrl_timer_callback() {
         if(e2 >= -hw_state.dSteps[STP_RIGHT]){
           hw_state.err -= hw_state.dSteps[STP_RIGHT];
           digitalWrite(PIN_STEP_LEFT, 1);
-          digitalWrite(PIN_STEP_LEFT, 0);
           hw_state.motor_pos[STP_LEFT] += hw_state.s[STP_LEFT];
         }
-        if(e2<= hw_state.dSteps[STP_LEFT]){
+        if(e2 <= hw_state.dSteps[STP_LEFT]){
           hw_state.err += hw_state.dSteps[STP_LEFT];
           digitalWrite(PIN_STEP_RIGHT, 1);
-          digitalWrite(PIN_STEP_RIGHT, 0);
           hw_state.motor_pos[STP_RIGHT] += hw_state.s[STP_RIGHT];
         }
+        digitalWrite(PIN_STEP_LEFT, 0);
+        digitalWrite(PIN_STEP_RIGHT, 0);
       }
     }
     break;
@@ -285,6 +294,11 @@ inline bool hw_ctrl_is_calibrated()
 
 void hw_ctrl_convert_length_to_point(float L, float R, float* x, float* y)
 {
+  char tmp[10];
+  dtostrf(L, 10, 3, tmp);
+  Serial.println(String("L:") + String(tmp));
+  dtostrf(R, 10, 3, tmp);
+  Serial.println(String("R:") + String(tmp));
   if(hw_state.state == START)
   {
         *x = NAN;
@@ -296,6 +310,11 @@ void hw_ctrl_convert_length_to_point(float L, float R, float* x, float* y)
 }
 
 void hw_ctrl_convert_point_to_length(float x, float y, float* L, float* R){
+  char tmp[10];
+  dtostrf(x, 10, 3, tmp);
+  Serial.println(String("X:") + String(tmp));
+  dtostrf(y, 10, 3, tmp);
+  Serial.println(String("Y:") + String(tmp));
   if(hw_state.state == START)
   {
         *L = NAN;
@@ -306,8 +325,5 @@ void hw_ctrl_convert_point_to_length(float x, float y, float* L, float* R){
   *R = sqrt((hw_state.base - x) * (hw_state.base - x) + y * y);
 }
 
-// ISR for servo positioning
-//ISR(TIMER2_OVF_vect){
-//}
 
 #endif

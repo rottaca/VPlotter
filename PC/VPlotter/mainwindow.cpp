@@ -189,10 +189,18 @@ void MainWindow::onSubmitCmd()
 
 void MainWindow::onChangeImgBounds()
 {
-    ui->vp_plotterRenderer->setImageBounds(ui->sb_scale->value(),ui->sb_pos_x->value(),ui->sb_pos_y->value());
+    float x,y,scale;
+    x = ui->sb_pos_x->value();
+    y = ui->sb_pos_y->value();
+    scale = ui->sb_scale->value();
+    ui->vp_plotterRenderer->setImageBounds(scale,x,y);
     convertForm->setImageInfo(currentImage,
-                              QVector2D(ui->sb_pos_x->value(),ui->sb_pos_y->value()),
-                              ui->sb_scale->value());
+                              QVector2D(x,y),
+                              scale);
+    ui->l_imgBounds->setText(QString("%1x%2")
+                             .arg(currentImage.width()*scale)
+                             .arg(currentImage.height()*scale));
+
 }
 void MainWindow::onTimerReadSerial()
 {

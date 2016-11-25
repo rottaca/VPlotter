@@ -166,7 +166,7 @@
        </sizepolicy>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab_ctrl">
        <attribute name="title">
@@ -257,7 +257,7 @@
                 <double>1000000.000000000000000</double>
                </property>
                <property name="value">
-                <double>800.000000000000000</double>
+                <double>873.000000000000000</double>
                </property>
               </widget>
              </item>
@@ -531,6 +531,16 @@
            <string>ImageConversionSettings</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_5">
+           <item row="1" column="2">
+            <widget class="QDoubleSpinBox" name="sb_pos_x">
+             <property name="maximum">
+              <double>1000000.000000000000000</double>
+             </property>
+             <property name="singleStep">
+              <double>10.000000000000000</double>
+             </property>
+            </widget>
+           </item>
            <item row="1" column="4">
             <widget class="QDoubleSpinBox" name="sb_pos_y">
              <property name="maximum">
@@ -551,16 +561,6 @@
              </property>
              <property name="text">
               <string>x</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="2">
-            <widget class="QDoubleSpinBox" name="sb_pos_x">
-             <property name="maximum">
-              <double>1000000.000000000000000</double>
-             </property>
-             <property name="singleStep">
-              <double>10.000000000000000</double>
              </property>
             </widget>
            </item>
@@ -587,6 +587,13 @@
              </property>
             </widget>
            </item>
+           <item row="0" column="0">
+            <widget class="QPushButton" name="b_convert">
+             <property name="text">
+              <string>Convert</string>
+             </property>
+            </widget>
+           </item>
            <item row="1" column="0">
             <widget class="QLabel" name="label_12">
              <property name="text">
@@ -594,10 +601,17 @@
              </property>
             </widget>
            </item>
-           <item row="0" column="0">
-            <widget class="QPushButton" name="b_convert">
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_15">
              <property name="text">
-              <string>Convert</string>
+              <string>Size (WxH):</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="2" colspan="3">
+            <widget class="QLabel" name="l_imgBounds">
+             <property name="text">
+              <string/>
              </property>
             </widget>
            </item>

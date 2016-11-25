@@ -52,8 +52,17 @@ void CommandListExecutor::onRecieveAnswer(QString answ)
         cmdsPending--;
 
         if(currCmdIdx < cmdList.size() && cmdsPending < clientCmdBufferSize){
-            qDebug((QString("Send Next: ") + cmdList.at(currCmdIdx).toLocal8Bit()).toLocal8Bit());
-            sendCmd(cmdList.at(currCmdIdx++));
+            QString cmd;
+            do{
+                cmd = cmdList.at(currCmdIdx++);
+            }while(cmd.contains(";") && currCmdIdx <= cmdList.size());
+            if(currCmdIdx > cmdList.size()){
+                emit onExecutionFinished();
+                executingCmds = false;
+            }else{
+                qDebug((QString("Send Next: ") + cmd.toLocal8Bit()).toLocal8Bit());
+                sendCmd(cmd);
+            }
         }
         else{
             emit onExecutionFinished();

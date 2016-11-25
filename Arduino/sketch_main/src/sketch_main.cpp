@@ -366,6 +366,13 @@ void executeM7()
     Serial.println("S R: " + String(hw_state.s[STP_RIGHT]));
     Serial.println("S L: " + String(hw_state.s[STP_LEFT]));
     Serial.println("Bufferusage: " + String((writeIdx-readIdx)%CMD_RING_BUFFER_SIZE) + "/" + String(CMD_RING_BUFFER_SIZE));
+    char tmp[10];
+    dtostrf(LENGTH_TO_STEPS(1), 9, 3, tmp );
+    Serial.println(String("L2S: ") + String(tmp));
+
+    dtostrf(STEPS_TO_LENGTH(1), 9, 8, tmp );
+    Serial.println(String("S2L: ") + String(tmp));
+
 }
 void executeM8(){
   float x,y;

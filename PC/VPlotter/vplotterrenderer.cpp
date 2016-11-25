@@ -89,8 +89,8 @@ void VPlotterRenderer::abortSimulation()
 void VPlotterRenderer::onSimulationTimerOverflow(){
     QPixmap pxMap = imgItemSimulation->pixmap();
     QPainter painter(&pxMap);
-    QPen Black((QColor(0,0,0)),2);  // Drawing
-    QPen Red((QColor(255,0,0)),2);  // Not Drawing
+    QPen Black((QColor(0,0,0)),1);  // Drawing
+    QPen Red((QColor(255,0,0)),1);  // Not Drawing
     painter.setPen(Red);
 
     int drawCircleSize = 10;

@@ -170,6 +170,10 @@ QStringList ConvertImageAlgorithms::convertMultiLines(QImage img, bool* drawLine
                                                       QMatrix3x3 l2wTrans){
     QStringList cmds;
 
+    // blur to remove small points
+    img = GraphicsEffects::applyBlur(img);
+    img = GraphicsEffects::applyBlur(img);
+
     int parts = 0;
     for(int i = 0; i < 4;i++)
         parts += drawLines[i]?1:0;
