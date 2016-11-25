@@ -5,9 +5,10 @@
 #include "convertimagealgorithms.h"
 
 ConvertForm::ConvertForm(MainWindow *parent) :
-    QWidget(0),
+    QWidget(parent),
     ui(new Ui::ConvertForm),mainWindow(parent)
 {
+    setWindowFlags(Qt::Window);
     ui->setupUi(this);
 
     //connect(ui->b_close,SIGNAL(clicked()),this,SLOT(onClickClose()));
@@ -28,27 +29,27 @@ void ConvertForm::onClickConvert()
 {
     int algo = ui->cb_convert_algorithm->currentIndex();
     QStringList cmds;
-
+    QMatrix3x3 l2w = ConvertImageAlgorithms::computeLocalToWorldTransform(imgPos,imgScale);
     switch(algo){
-        case 0:{
-            cmds = ConvertImageAlgorithms::convertLines(preproImg,
-                                                        ui->cb_line_dir->currentIndex()*45,
-                                                        ui->hs_lines_threshold->value(),
-                                                        ui->hs_lines_sampling->value()/imgScale,
-                                                        imgPos,imgScale);
-            break;
+    case 0:{
+        bool draws[4];
+        draws[0] = ui->cb_multiline_draw_0->isChecked();
+        draws[1] = ui->cb_multiline_draw_45->isChecked();
+        draws[2] = ui->cb_multiline_draw_90->isChecked();
+        draws[3] = ui->cb_multiline_draw_135->isChecked();
+        cmds = ConvertImageAlgorithms::convertMultiLines(preproImg,
+                                                         draws,
+                                                         ui->cb_multiline_map->isChecked(),
+                                                         ui->hs_multilines_sampling->value()/imgScale,
+                                                         ui->hs_multilines_threshold->value(),
+                                                         l2w);
         }
+        break;
         case 1:{
-            bool draws[4];
-            draws[0] = ui->cb_multiline_draw_0->isChecked();
-            draws[1] = ui->cb_multiline_draw_45->isChecked();
-            draws[2] = ui->cb_multiline_draw_90->isChecked();
-            draws[3] = ui->cb_multiline_draw_135->isChecked();
-            cmds = ConvertImageAlgorithms::convertMultiLines(preproImg,
-                                                             draws,
-                                                             ui->cb_multiline_map->isChecked(),
-                                                             ui->hs_multilines_sampling->value()/imgScale,
-                                                             imgPos,imgScale);
+        cmds = ConvertImageAlgorithms::convertSquares(preproImg,
+                                                         qMin(preproImg.width(),preproImg.height()),
+                                                         ui->sb_squares_recursionDepth->value(),
+                                                         l2w);
         }
         break;
         default:

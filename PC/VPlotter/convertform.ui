@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>823</width>
-    <height>401</height>
+    <height>408</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -81,7 +81,7 @@
            <enum>QFrame::Plain</enum>
           </property>
           <property name="currentIndex">
-           <number>3</number>
+           <number>2</number>
           </property>
           <widget class="QWidget" name="page_5"/>
           <widget class="QWidget" name="page">
@@ -127,7 +127,7 @@
             <item row="1" column="0" colspan="2">
              <widget class="QCheckBox" name="cb_binarize_invert">
               <property name="text">
-               <string>Invert binarizing</string>
+               <string>Invert</string>
               </property>
              </widget>
             </item>
@@ -142,17 +142,17 @@
               </property>
              </widget>
             </item>
-            <item row="4" column="0">
-             <widget class="QLabel" name="label_10">
-              <property name="text">
-               <string>Quantile</string>
-              </property>
-             </widget>
-            </item>
             <item row="1" column="1">
              <widget class="QSpinBox" name="sb_stretch_min">
               <property name="maximum">
                <number>255</number>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_11">
+              <property name="text">
+               <string>Max</string>
               </property>
              </widget>
             </item>
@@ -166,17 +166,17 @@
               </property>
              </widget>
             </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="label_11">
-              <property name="text">
-               <string>Max</string>
-              </property>
-             </widget>
-            </item>
             <item row="3" column="1">
              <widget class="QCheckBox" name="cb_stretch_auto">
               <property name="text">
                <string>Automatic detection</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="0">
+             <widget class="QLabel" name="label_10">
+              <property name="text">
+               <string>Quantile</string>
               </property>
              </widget>
             </item>
@@ -237,12 +237,12 @@
         <widget class="QComboBox" name="cb_convert_algorithm">
          <item>
           <property name="text">
-           <string>Lines</string>
+           <string>MultiLines</string>
           </property>
          </item>
          <item>
           <property name="text">
-           <string>MultiLines</string>
+           <string>Squares</string>
           </property>
          </item>
         </widget>
@@ -272,81 +272,6 @@
           <property name="currentIndex">
            <number>1</number>
           </property>
-          <widget class="QWidget" name="page_3">
-           <layout class="QFormLayout" name="formLayout_2">
-            <item row="0" column="0">
-             <widget class="QLabel" name="label_4">
-              <property name="text">
-               <string>Line Direction</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <widget class="QComboBox" name="cb_line_dir">
-              <item>
-               <property name="text">
-                <string>0°</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>45°</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>90°</string>
-               </property>
-              </item>
-              <item>
-               <property name="text">
-                <string>135°</string>
-               </property>
-              </item>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="label_5">
-              <property name="text">
-               <string>Threshold</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="1">
-             <widget class="QSlider" name="hs_lines_threshold">
-              <property name="maximum">
-               <number>255</number>
-              </property>
-              <property name="value">
-               <number>100</number>
-              </property>
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="0">
-             <widget class="QLabel" name="label_6">
-              <property name="text">
-               <string>Sampling</string>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="1">
-             <widget class="QSlider" name="hs_lines_sampling">
-              <property name="maximum">
-               <number>100</number>
-              </property>
-              <property name="value">
-               <number>20</number>
-              </property>
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
           <widget class="QWidget" name="page_4">
            <layout class="QFormLayout" name="formLayout_4">
             <item row="0" column="0">
@@ -372,38 +297,116 @@
               </property>
              </widget>
             </item>
-            <item row="5" column="0" colspan="2">
+            <item row="10" column="0" colspan="2">
              <widget class="QCheckBox" name="cb_multiline_draw_135">
               <property name="text">
                <string>Draw 135° Line</string>
               </property>
              </widget>
             </item>
-            <item row="1" column="0">
+            <item row="3" column="0">
              <widget class="QCheckBox" name="cb_multiline_map">
               <property name="text">
                <string>Map lines to intensity</string>
               </property>
              </widget>
             </item>
-            <item row="4" column="0">
+            <item row="9" column="0">
              <widget class="QCheckBox" name="cb_multiline_draw_90">
               <property name="text">
                <string>Draw 90° Line</string>
               </property>
              </widget>
             </item>
-            <item row="2" column="0">
+            <item row="7" column="0">
              <widget class="QCheckBox" name="cb_multiline_draw_0">
               <property name="text">
                <string>Draw 0° Line</string>
               </property>
              </widget>
             </item>
-            <item row="3" column="0">
+            <item row="8" column="0">
              <widget class="QCheckBox" name="cb_multiline_draw_45">
               <property name="text">
                <string>Draw 45° Line</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <layout class="QHBoxLayout" name="horizontalLayout_6">
+              <item>
+               <widget class="QLabel" name="label_12">
+                <property name="text">
+                 <string>0</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_13">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>mm</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item row="5" column="1">
+             <widget class="QSlider" name="hs_multilines_threshold">
+              <property name="minimum">
+               <number>0</number>
+              </property>
+              <property name="maximum">
+               <number>255</number>
+              </property>
+              <property name="value">
+               <number>20</number>
+              </property>
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="0">
+             <widget class="QLabel" name="label_15">
+              <property name="text">
+               <string>Threshold</string>
+              </property>
+             </widget>
+            </item>
+            <item row="6" column="1">
+             <widget class="QLabel" name="label_14">
+              <property name="text">
+               <string>0</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="page_3">
+           <layout class="QFormLayout" name="formLayout_2">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_4">
+              <property name="text">
+               <string>RecursionDepth</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QSpinBox" name="sb_squares_recursionDepth">
+              <property name="value">
+               <number>3</number>
               </property>
              </widget>
             </item>
@@ -438,12 +441,12 @@
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>175</x>
-     <y>163</y>
+     <x>117</x>
+     <y>90</y>
     </hint>
     <hint type="destinationlabel">
-     <x>181</x>
-     <y>98</y>
+     <x>117</x>
+     <y>81</y>
     </hint>
    </hints>
   </connection>
@@ -454,12 +457,92 @@
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>214</x>
-     <y>159</y>
+     <x>117</x>
+     <y>90</y>
     </hint>
     <hint type="destinationlabel">
-     <x>216</x>
-     <y>124</y>
+     <x>117</x>
+     <y>86</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>hs_multilines_sampling</sender>
+   <signal>sliderMoved(int)</signal>
+   <receiver>label_12</receiver>
+   <slot>setNum(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>674</x>
+     <y>99</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>675</x>
+     <y>121</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>hs_multilines_threshold</sender>
+   <signal>sliderMoved(int)</signal>
+   <receiver>label_14</receiver>
+   <slot>setNum(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>782</x>
+     <y>182</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>782</x>
+     <y>214</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>cb_multiline_map</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>label_15</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>542</x>
+     <y>148</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>503</x>
+     <y>191</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>cb_multiline_map</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>hs_multilines_threshold</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>577</x>
+     <y>157</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>644</x>
+     <y>187</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>cb_multiline_map</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>label_14</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>599</x>
+     <y>156</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>656</x>
+     <y>212</y>
     </hint>
    </hints>
   </connection>

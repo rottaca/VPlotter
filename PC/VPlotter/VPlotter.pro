@@ -33,3 +33,6 @@ HEADERS  += mainwindow.h \
 
 FORMS    += mainwindow.ui \
     convertform.ui
+
+RESOURCES += \
+    assets/resources.qrc

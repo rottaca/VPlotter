@@ -89,9 +89,9 @@ void MainWindow::setCommandList(QStringList cmds, bool autoSimulate)
     ui->te_comand_script->setPlainText(cmds.join("\n"));
     ui->l_editor_lines_of_code->setText(QString("%1").arg(cmds.length()));
     if(autoSimulate){
+        ui->vp_plotterRenderer->abortSimulation();
+        ui->b_simulate->setText("Simulate");
         onClickSimulateCmdFile();
-        ui->rb_show_simulation->setChecked(true);
-        ui->vp_plotterRenderer->showItems(VPlotterRenderer::SIMULATION);
     }
 }
 
@@ -128,19 +128,21 @@ void MainWindow::onClickOpenFile()
 
     ui->vp_plotterRenderer->setRawImage(currentImage);
     ui->vp_plotterRenderer->setPreprocessedImage(QImage());
-    float scale = std::min(ui->vp_plotterRenderer->getPlotterSize().x()/currentImage.width(),
-                      ui->vp_plotterRenderer->getPlotterSize().y()/currentImage.height());
-    ui->vp_plotterRenderer->setImageBounds(scale,0,0);
+    float scale = std::min(ui->vp_plotterRenderer->getDrawAreaSize().x()/currentImage.width(),
+                      ui->vp_plotterRenderer->getDrawAreaSize().y()/currentImage.height());
+    QVector2D pos = ui->vp_plotterRenderer->getDrawAreaOrigin();
+    ui->vp_plotterRenderer->setImageBounds(scale,pos.x(),pos.y());
     convertForm->setImageInfo(currentImage,
-                            QVector2D(0,0),scale);
+                            pos,scale);
     ui->vp_plotterRenderer->simulateCommands(QStringList());
 
     ui->sb_scale->setValue(scale);
-    ui->sb_pos_x->setValue(0);
-    ui->sb_pos_y->setValue(0);
+    ui->sb_pos_x->setValue(pos.x());
+    ui->sb_pos_y->setValue(pos.y());
     ui->gb_imageConvert->setEnabled(true);
     ui->rb_show_raw->setChecked(true);
     ui->vp_plotterRenderer->showItems(VPlotterRenderer::RAW);
+    ui->vp_plotterRenderer->resetScale();
 }
 
 void MainWindow::onClickConnect()
@@ -328,6 +330,8 @@ void MainWindow::onClickSimulateCmdFile()
     if(ui->b_simulate->text().compare("Simulate") == 0){
         QStringList cmds = ui->te_comand_script->toPlainText().split("\n");
         ui->vp_plotterRenderer->simulateCommands(cmds);
+        ui->rb_show_simulation->setChecked(true);
+        ui->vp_plotterRenderer->showItems(VPlotterRenderer::SIMULATION);
         ui->b_simulate->setText("Stop Simulation");
     }else{
         ui->vp_plotterRenderer->abortSimulation();
@@ -346,7 +350,8 @@ void MainWindow::onSimulationFinished()
 void MainWindow::onClickConvert()
 {
     convertForm->show();
-    convertForm->setFocus();
+    convertForm->activateWindow();
+    convertForm->raise();
 }
 void MainWindow::onClickShowRadio()
 {

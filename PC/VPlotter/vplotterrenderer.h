@@ -35,10 +35,17 @@ public:
     void setPlotterSize(float w, float h);
 
     QVector2D getPlotterSize(){
-        return QVector2D(p_scene->sceneRect().width(),p_scene->sceneRect().height());
+        return plotterSize;
     }
 
-    void resizeEvent(QResizeEvent * event){
+    QVector2D getDrawAreaSize(){
+        return QVector2D(plotterSize.x()-2*motorPadding,plotterSize.y());
+    }
+    QVector2D getDrawAreaOrigin(){
+        return QVector2D(motorPadding,0);
+    }
+
+    void resetScale(){
         fitInView(p_scene->sceneRect(),Qt::KeepAspectRatio);
     }
 
@@ -63,6 +70,10 @@ public:
             imgItemSimulation->setVisible(true);
         }
     }
+    void setMotorPadding(int p){
+        motorPadding = p;
+    }
+
 
 public slots:
     void onSimulationTimerOverflow();
@@ -80,11 +91,13 @@ private:
     Graphics_view_zoom* zoom;
     QGraphicsPixmapItem* rawImgItem;
     QGraphicsPixmapItem* preprocessedImgItem;
-    QGraphicsRectItem* plotterRectItem;
     QGraphicsPixmapItem* imgItemSimulation;
-    QGraphicsPixmapItem* imgItemDrawBoard;
+    QGraphicsPixmapItem* drawBoardImgItem;
+    QGraphicsPixmapItem* motorImgItemL;
+    QGraphicsPixmapItem* motorImgItemR;
 
     QVector2D imgSize;
+    QVector2D plotterSize;
     QRect imgBounds;
 
     QGraphicsScene* p_scene;
@@ -98,6 +111,8 @@ private:
     bool absolutePositioning;
     QVector2D pos; // Start postion 0,0
     enum DisplayMode dispMode;
+
+    int motorPadding;
 };
 
 #endif // VPLOTTERRENDERER_H

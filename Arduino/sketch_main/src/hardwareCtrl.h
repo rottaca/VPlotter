@@ -12,12 +12,14 @@
 // Use microstepping multiplier
 #define MOTOR_MICRO_STEPPING 32
 // Length of cord per revolution in mm
-#define CORD_LENGTH_PER_REVOLUTION M_PI*5.0f
+#define CORD_LENGTH_PER_REVOLUTION 50
 // Full steps necessary for a single rotation
 #define STEPPER_STEPS_PER_REVOLUTION 200
 // Speed of timer0, used for servo positioning and stepper control
 #define TIMER1_US_PER_INTERRUPT 150
-#define SPEED_MULTIPLIER 4
+#define SPEED_MULTIPLIER 1
+#define INVERT_STEPPER_LEFT -1
+#define INVERT_STEPPER_RIGHT 1
 
 // Pin layout
 #define PIN_DIR_LEFT 6
@@ -41,7 +43,7 @@
 #define SERVO_US_FULL_PHASE 20000   // 20ms
 #define SERVO_US_POS_UP 1800        // 1.8ms
 #define SERVO_US_POS_DOWN 1000      // 1ms
-#define SERVO_MOVE_DELAY 200000      // Time for servo to reach position 20 ms
+#define SERVO_MOVE_DELAY 250000      // Time for servo to reach position 20 ms
 
 // Macro to convert cord length into steps
 #define LENGTH_TO_STEPS(l) ((l)/(CORD_LENGTH_PER_REVOLUTION) * STEPPER_STEPS_PER_REVOLUTION * MOTOR_MICRO_STEPPING )
@@ -149,7 +151,12 @@ bool hw_ctrl_set_drawing(bool drawing)
   if(hw_state.state != IDLE)
     return false;
 
-  hw_state.servo_signal_length_us = drawing?SERVO_US_POS_DOWN:SERVO_US_POS_UP;
+  uint32_t newPos = drawing?SERVO_US_POS_DOWN:SERVO_US_POS_UP;
+  // Avoid unnecessary waits
+  if(newPos == hw_state.servo_signal_length_us)
+    return true;
+
+  hw_state.servo_signal_length_us = newPos;
   hw_state.servo_move_delay = 0;
   hw_state.state = WAIT_SERVO;
   return true;
@@ -207,8 +214,8 @@ void hw_ctrl_execute_motion(float x, float y) {
   hw_state.err = hw_state.dSteps[STP_LEFT]-hw_state.dSteps[STP_RIGHT];
 
   // Set direction
-  digitalWrite(PIN_DIR_RIGHT,(hw_state.s[STP_RIGHT])>0?1:0);
-  digitalWrite(PIN_DIR_LEFT,(hw_state.s[STP_LEFT])>0?1:0);
+  digitalWrite(PIN_DIR_RIGHT,(hw_state.s[STP_RIGHT]*INVERT_STEPPER_RIGHT)>0?1:0);
+  digitalWrite(PIN_DIR_LEFT,(hw_state.s[STP_LEFT]*INVERT_STEPPER_LEFT)>0?1:0);
 
   // Start motion
   hw_state.state = MOVING;

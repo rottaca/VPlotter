@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/res">
+        <file>motor.png</file>
+    </qresource>
+</RCC>

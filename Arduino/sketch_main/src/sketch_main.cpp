@@ -7,7 +7,7 @@
 #include "hardwareCtrl.h"
 
 // Size of the ringbuffer that contains all commands
-#define CMD_RING_BUFFER_SIZE 10
+#define CMD_RING_BUFFER_SIZE 20
 // Size of the data that is read as a single piece
 #define MAX_CMD_SIZE 32
 // Maximum number of gcode parameters
@@ -166,6 +166,9 @@ void executeCmd(char* cmd, char** params) {
   case 'M':
     executeMCode(cmdCode, params);
     break;
+    // Skip comments
+  case ';':
+    SEND_NOERROR;
   default:
     SEND_ERROR(ERROR_UNKNOWN_CODE);
   }

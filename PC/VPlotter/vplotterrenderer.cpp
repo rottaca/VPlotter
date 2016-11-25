@@ -1,4 +1,5 @@
 #include "vplotterrenderer.h"
+#include <QMouseEvent>
 
 VPlotterRenderer::VPlotterRenderer(QWidget *parent):QGraphicsView(new QGraphicsScene(),parent)
 {
@@ -6,13 +7,21 @@ VPlotterRenderer::VPlotterRenderer(QWidget *parent):QGraphicsView(new QGraphicsS
     zoom->set_modifiers(Qt::NoModifier);
 
     p_scene = scene();
+    setRenderHints( QPainter::SmoothPixmapTransform);
+    drawBoardImgItem = p_scene->addPixmap(QPixmap());
+
+    QPixmap motorL,motorR;
+    if(!motorL.load(":/res/motor.png") || !motorR.load(":/res/motor.png")){
+        qDebug("Can't load motor images.");
+    }
+    motorImgItemL = p_scene->addPixmap(motorL);
+    motorImgItemR = p_scene->addPixmap(motorR);
 
     rawImgItem = p_scene->addPixmap(QPixmap());
     preprocessedImgItem = p_scene->addPixmap(QPixmap());
-    plotterRectItem = p_scene->addRect(0,0,100,100);
-    imgItemDrawBoard = p_scene->addPixmap(QPixmap());
     imgItemSimulation = p_scene->addPixmap(QPixmap());
 
+    setMotorPadding(60);
     renderPenUD = true;
     renderNonDrawMove = true;
     showItems(RAW);
@@ -20,32 +29,43 @@ VPlotterRenderer::VPlotterRenderer(QWidget *parent):QGraphicsView(new QGraphicsS
 }
 
 void VPlotterRenderer::setPlotterSize(float w, float h){
-    p_scene->setSceneRect(0,0,w,h);
-    plotterRectItem->setRect(0,0,w,h);
-    fitInView(p_scene->sceneRect(),Qt::KeepAspectRatio);
+    plotterSize.setX(w);
+    plotterSize.setY(h);
+    p_scene->setSceneRect(-100,-100,w+100,h+100);
+    resetScale();
 
     int gridResMM = 100;
-
-    QPixmap pixmap(w,h);
-    pixmap.fill(Qt::transparent);
+    int penWidth = 2;
+    int pixmapPad = penWidth;
+    QPixmap pixmap(w+2*pixmapPad,h+2*pixmapPad);
+    pixmap.fill(Qt::white);
     QPainter painter(&pixmap);
-    QPen Blue((QColor(0,0,255)),2,Qt::DashLine);  // Drawing
-    painter.setPen(Blue);
+    QPen gridPen((QColor(0,0,255)),penWidth,Qt::DashLine);  // Drawing
+    QPen drawAreaPen((QColor(255,0,0)),penWidth);  // Drawing
+    painter.setPen(gridPen);
     int lx, ly;
     lx = qFloor(w/gridResMM);
     ly = qFloor(h/gridResMM);
 
     QLine lines[lx+ly];
     int idx = 0;
-    for(int y = 0; y < ly;y++){
-        lines[idx++] = QLine(0,y*gridResMM,w,y*gridResMM);
+    for(int y = 0; y <= ly;y++){
+        lines[idx++] = QLine(pixmapPad,y*gridResMM+pixmapPad,
+                             w+pixmapPad,y*gridResMM+pixmapPad);
     }
-    for(int x = 0; x < lx;x++){
-        lines[idx++] = QLine(x*gridResMM,0,x*gridResMM,h);
+    for(int x = 0; x <= lx;x++){
+        lines[idx++] = QLine(x*gridResMM+pixmapPad,pixmapPad,
+                             x*gridResMM+pixmapPad,h+pixmapPad);
     }
     painter.drawLines(lines,idx);
+    painter.setPen(drawAreaPen);
+    painter.drawRect(motorPadding+pixmapPad,pixmapPad,
+                     w-2*motorPadding,h);
     painter.end();
-    imgItemDrawBoard->setPixmap(pixmap);
+    drawBoardImgItem->setPixmap(pixmap);
+    drawBoardImgItem->setPos(-pixmapPad,-pixmapPad);
+    motorImgItemL->setPos(-motorImgItemL->pixmap().width()/2,-motorImgItemL->pixmap().height()/2);
+    motorImgItemR->setPos(w-motorImgItemR->pixmap().width()/2,-motorImgItemR->pixmap().height()/2);
 }
 
 void VPlotterRenderer::simulateCommands(QStringList cmds)
