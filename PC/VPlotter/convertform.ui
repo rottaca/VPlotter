@@ -81,7 +81,7 @@
            <enum>QFrame::Plain</enum>
           </property>
           <property name="currentIndex">
-           <number>2</number>
+           <number>3</number>
           </property>
           <widget class="QWidget" name="page_5"/>
           <widget class="QWidget" name="page">
@@ -183,7 +183,7 @@
             <item row="4" column="1">
              <widget class="QDoubleSpinBox" name="sb_stretch_quantile">
               <property name="maximum">
-               <double>0.500000000000000</double>
+               <double>0.490000000000000</double>
               </property>
               <property name="singleStep">
                <double>0.100000000000000</double>
@@ -245,6 +245,11 @@
            <string>Squares</string>
           </property>
          </item>
+         <item>
+          <property name="text">
+           <string>Waves</string>
+          </property>
+         </item>
         </widget>
        </item>
       </layout>
@@ -270,7 +275,7 @@
            <enum>QFrame::Plain</enum>
           </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="page_4">
            <layout class="QFormLayout" name="formLayout_4">
@@ -412,6 +417,125 @@
             </item>
            </layout>
           </widget>
+          <widget class="QWidget" name="page_7">
+           <layout class="QFormLayout" name="formLayout_6">
+            <item row="4" column="0">
+             <widget class="QLabel" name="label_5">
+              <property name="text">
+               <string>X-Sampling</string>
+              </property>
+              <property name="indent">
+               <number>-5</number>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1">
+             <widget class="QSlider" name="hs_sin_x_sampling">
+              <property name="minimum">
+               <number>2</number>
+              </property>
+              <property name="maximum">
+               <number>500</number>
+              </property>
+              <property name="value">
+               <number>20</number>
+              </property>
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QSlider" name="hs_sin_y_sampling">
+              <property name="minimum">
+               <number>2</number>
+              </property>
+              <property name="maximum">
+               <number>500</number>
+              </property>
+              <property name="value">
+               <number>5</number>
+              </property>
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_6">
+              <property name="text">
+               <string>Y-Sampling</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <layout class="QHBoxLayout" name="horizontalLayout_7">
+              <item>
+               <widget class="QLabel" name="label_17">
+                <property name="text">
+                 <string>0</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+                <property name="indent">
+                 <number>-5</number>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_16">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>mm</string>
+                </property>
+                <property name="indent">
+                 <number>-5</number>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item row="5" column="1">
+             <layout class="QHBoxLayout" name="horizontalLayout_8">
+              <item>
+               <widget class="QLabel" name="label_18">
+                <property name="text">
+                 <string>0</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+                <property name="indent">
+                 <number>-5</number>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_19">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>mm</string>
+                </property>
+                <property name="indent">
+                 <number>-5</number>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </widget>
          </widget>
         </item>
        </layout>
@@ -468,32 +592,32 @@
   </connection>
   <connection>
    <sender>hs_multilines_sampling</sender>
-   <signal>sliderMoved(int)</signal>
+   <signal>valueChanged(int)</signal>
    <receiver>label_12</receiver>
    <slot>setNum(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>674</x>
-     <y>99</y>
+     <x>637</x>
+     <y>79</y>
     </hint>
     <hint type="destinationlabel">
-     <x>675</x>
-     <y>121</y>
+     <x>628</x>
+     <y>115</y>
     </hint>
    </hints>
   </connection>
   <connection>
    <sender>hs_multilines_threshold</sender>
-   <signal>sliderMoved(int)</signal>
+   <signal>valueChanged(int)</signal>
    <receiver>label_14</receiver>
    <slot>setNum(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>782</x>
-     <y>182</y>
+     <x>637</x>
+     <y>179</y>
     </hint>
     <hint type="destinationlabel">
-     <x>782</x>
+     <x>637</x>
      <y>214</y>
     </hint>
    </hints>
@@ -505,12 +629,12 @@
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>542</x>
-     <y>148</y>
+     <x>504</x>
+     <y>145</y>
     </hint>
     <hint type="destinationlabel">
-     <x>503</x>
-     <y>191</y>
+     <x>504</x>
+     <y>179</y>
     </hint>
    </hints>
   </connection>
@@ -521,12 +645,12 @@
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>577</x>
-     <y>157</y>
+     <x>504</x>
+     <y>145</y>
     </hint>
     <hint type="destinationlabel">
-     <x>644</x>
-     <y>187</y>
+     <x>637</x>
+     <y>179</y>
     </hint>
    </hints>
   </connection>
@@ -537,12 +661,44 @@
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>599</x>
-     <y>156</y>
+     <x>504</x>
+     <y>145</y>
     </hint>
     <hint type="destinationlabel">
-     <x>656</x>
-     <y>212</y>
+     <x>637</x>
+     <y>214</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>hs_sin_y_sampling</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>label_17</receiver>
+   <slot>setNum(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>685</x>
+     <y>110</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>721</x>
+     <y>125</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>hs_sin_x_sampling</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>label_18</receiver>
+   <slot>setNum(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>604</x>
+     <y>165</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>641</x>
+     <y>192</y>
     </hint>
    </hints>
   </connection>

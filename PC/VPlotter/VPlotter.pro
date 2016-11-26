@@ -29,7 +29,8 @@ HEADERS  += mainwindow.h \
     commandlistexecutor.h \
     convertform.h \
     convertimagealgorithms.h \
-    graphics_view_zoom.h
+    graphics_view_zoom.h \
+    gcodecommands.h
 
 FORMS    += mainwindow.ui \
     convertform.ui

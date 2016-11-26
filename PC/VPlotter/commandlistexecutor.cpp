@@ -60,7 +60,7 @@ void CommandListExecutor::onRecieveAnswer(QString answ)
                 emit onExecutionFinished();
                 executingCmds = false;
             }else{
-                qDebug((QString("Send Next: ") + cmd.toLocal8Bit()).toLocal8Bit());
+                //qDebug((QString("Send Next: ") + cmd.toLocal8Bit()).toLocal8Bit());
                 sendCmd(cmd);
             }
         }

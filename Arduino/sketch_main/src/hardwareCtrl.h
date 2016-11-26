@@ -8,56 +8,8 @@
 
 #include <Arduino.h>
 #include "TimerOne.h"
-
-// Microstepping multiplier
-#define MICRO_STEPPING 32
-// Full steps necessary for a single rotation
-#define STEPS_PER_REVOLUTION 200
-// Length of cord per revolution in mm
-#define DIST_PER_REVOLUTION 50
-// Speed of timer1, used for servo positioning and stepper control
-#define TIMER1_US_PER_INTERRUPT 150
-// Speed multiplier for stepper motion
-#define SPEED_MULTIPLIER 1
-// Invert stepper direction
-#define INVERT_STEPPER_LEFT -1
-#define INVERT_STEPPER_RIGHT 1
-
-// Pin layout
-#define PIN_DIR_LEFT 6
-#define PIN_DIR_RIGHT 2
-#define PIN_STEP_LEFT 7
-#define PIN_STEP_RIGHT 3
-#define PIN_SERVO 9
-#define PIN_LED 13
-
-// Valid drawing area, Movements are clamped to this area
-#define X_MIN 10
-#define X_MAX 600
-#define Y_MIN 10
-#define Y_MAX 1100
-
-// Defines the home position
-#define HOME_POS_X 300
-#define HOME_POS_Y 300
-
-// Servo setup
-#define SERVO_US_FULL_PHASE 20000   // 20ms
-// Non-drawing position
-#define SERVO_US_PEN_UP 1600        // 1.8ms
-// drawing position
-#define SERVO_US_PEN_DOWN 1150      // 1ms
-// Time for servo to reach position
-#define SERVO_MOVE_DELAY 200000
-
-// Macro to convert cord length into steps
-#define LENGTH_TO_STEPS_CONST ((double)STEPS_PER_REVOLUTION * MICRO_STEPPING)/(DIST_PER_REVOLUTION)
-#define STEPS_TO_LENGTH_CONST ((double)DIST_PER_REVOLUTION/(STEPS_PER_REVOLUTION*MICRO_STEPPING))
-#define LENGTH_TO_STEPS(l) ((uint32_t)round((double)l*LENGTH_TO_STEPS_CONST))
-#define STEPS_TO_LENGTH(s) ((double)s*STEPS_TO_LENGTH_CONST)
-
-// Clamps the value of v between min and max
-#define CLAMP(V,MIN,MAX) ((V)<(MIN)?(MIN):((V)>(MAX)?(MAX):(V)))
+#include "settings.h"
+#include "macros.h"
 
 // Stepper names and cnt: 0,1,2
 enum {STP_LEFT,STP_RIGHT,STP_CNT};
@@ -79,6 +31,9 @@ struct hardware_state_t
   int32_t s[STP_CNT];
   int32_t dSteps[STP_CNT];
 
+  // properties for speed control
+  uint8_t skipped_loops;
+  uint8_t loops_to_skip;
   // motor position
   int32_t motor_pos[STP_CNT];
   // target motor position
@@ -121,10 +76,12 @@ void hw_ctrl_init()
 
   hw_state.base = 0;
   hw_state.err = 0;
-  hw_state.servo_move_delay = 0;
   hw_state.us_since_servo_period = 0;
-  hw_state.state = START;
   hw_state.servo_signal_length_us = SERVO_US_PEN_UP;
+  hw_state.servo_move_delay = 0;
+  hw_state.state = START;
+  hw_state.skipped_loops = 0;
+  hw_state.loops_to_skip = SPEED_DIVIDER;
 
   // Initialize hardware
   pinMode(PIN_DIR_LEFT, OUTPUT);
@@ -134,30 +91,37 @@ void hw_ctrl_init()
   pinMode(PIN_SERVO, OUTPUT);
   pinMode(PIN_LED,OUTPUT);
 
-  // Lift the pen
-  hw_ctrl_set_drawing(false);
 
   // Start timer for motor control
   Timer1.initialize(TIMER1_US_PER_INTERRUPT);
   Timer1.attachInterrupt(hw_ctrl_timer_callback);
 
-  // Init servo timer by hand
-  // F_CPU = 16000000Hz (16 MHz)
-  // Timer 2: 8-Bit -> 256
-  // Prescaler 8 -> 16000000Hz/8 =2000000Hz
-  // 1000/2000000Hz = 0,0005ms per Tick
-  // 0,0005ms*256 = 0,128 ms per Overflow
-  //TCCR2A = 0;
-  // Prescaler 8
-  //TCCR2B = (1 << CS21);
-  // Enable overflow interrupt
-  //TIMSK2 = (1 << TOIE2);
+  delay(500);
+  // test stepper moves
+  for (size_t dir = 0; dir < 2; dir++) {
+    digitalWrite(PIN_DIR_LEFT, INVERT_STEPPER_LEFT==1?dir:1-dir);
+    digitalWrite(PIN_DIR_RIGHT, INVERT_STEPPER_RIGHT==1?dir:1-dir);
 
+    for (size_t i = 0; i < STEPS_PER_REVOLUTION*MICRO_STEPPING/5; i++) {
+      digitalWrite(PIN_STEP_LEFT, 1);
+      digitalWrite(PIN_STEP_RIGHT, 1);
+      delay(1);
+      digitalWrite(PIN_STEP_LEFT, 0);
+      digitalWrite(PIN_STEP_RIGHT, 0);
+    }
+  }
+}
+
+bool hw_ctrl_set_speed_devider(uint8_t div){
+  if(hw_state.state != IDLE)
+    return false;
+
+  hw_state.loops_to_skip = CLAMP(div,1,255);
 }
 
 bool hw_ctrl_set_drawing(bool drawing)
 {
-  if(hw_state.state != IDLE && hw_state.state != START)
+  if(hw_state.state != IDLE)
     return false;
 
   uint32_t newPos = drawing?SERVO_US_PEN_DOWN:SERVO_US_PEN_UP;
@@ -246,11 +210,18 @@ void hw_ctrl_timer_callback() {
   switch (hw_state.state) {
     case MOVING:
     {
-        for(int i = 0; i < SPEED_MULTIPLIER; i++){
+        if (hw_state.skipped_loops < hw_state.loops_to_skip) {
+          hw_state.skipped_loops++;
+          break;
+        }
+
+        hw_state.skipped_loops = 0;
+
         // Motion finished ?
         if(hw_state.motor_pos[STP_LEFT] == hw_state.motor_pos_target[STP_LEFT] &&
           hw_state.motor_pos[STP_RIGHT] == hw_state.motor_pos_target[STP_RIGHT])
         {
+            // go to idle
             hw_state.state = IDLE;
             break;
         }
@@ -267,9 +238,9 @@ void hw_ctrl_timer_callback() {
           digitalWrite(PIN_STEP_RIGHT, 1);
           hw_state.motor_pos[STP_RIGHT] += hw_state.s[STP_RIGHT];
         }
+        // Reset pins to zero
         digitalWrite(PIN_STEP_LEFT, 0);
         digitalWrite(PIN_STEP_RIGHT, 0);
-      }
     }
     break;
   case WAIT_SERVO:
@@ -292,13 +263,8 @@ inline bool hw_ctrl_is_calibrated()
   return hw_state.state != START;
 }
 
-void hw_ctrl_convert_length_to_point(float L, float R, float* x, float* y)
-{
-  char tmp[10];
-  dtostrf(L, 10, 3, tmp);
-  Serial.println(String("L:") + String(tmp));
-  dtostrf(R, 10, 3, tmp);
-  Serial.println(String("R:") + String(tmp));
+void hw_ctrl_convert_length_to_point(float L, float R, float* x, float* y){
+
   if(hw_state.state == START)
   {
         *x = NAN;
@@ -310,11 +276,7 @@ void hw_ctrl_convert_length_to_point(float L, float R, float* x, float* y)
 }
 
 void hw_ctrl_convert_point_to_length(float x, float y, float* L, float* R){
-  char tmp[10];
-  dtostrf(x, 10, 3, tmp);
-  Serial.println(String("X:") + String(tmp));
-  dtostrf(y, 10, 3, tmp);
-  Serial.println(String("Y:") + String(tmp));
+
   if(hw_state.state == START)
   {
         *L = NAN;

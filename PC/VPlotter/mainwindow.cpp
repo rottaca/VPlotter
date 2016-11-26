@@ -7,6 +7,7 @@
 
 #include "graphicseffects.h"
 #include "convertform.h"
+#include "gcodecommands.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -40,6 +41,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->rb_show_preproc,SIGNAL(clicked()),this,SLOT(onClickShowRadio()));
     connect(ui->rb_show_raw,SIGNAL(clicked()),this,SLOT(onClickShowRadio()));
     connect(ui->rb_show_simulation,SIGNAL(clicked()),this,SLOT(onClickShowRadio()));
+    connect(ui->b_gen_boundinBox,SIGNAL(clicked()),this,SLOT(onClickGenerateBoundingBox()));
 
     timer = new QTimer();
     connect(timer,SIGNAL(timeout()),this,SLOT(onPollPosition()));
@@ -125,7 +127,7 @@ void MainWindow::onClickOpenFile()
     //currentImage = GraphicsEffects::applyBlur(currentImage);
     //currentImage = GraphicsEffects::applySobel(currentImage);
     //currentImage = GraphicsEffects::applyBinarize(currentImage,50,255,0);
-
+    ui->l_img_path->setText(file);
     ui->vp_plotterRenderer->setRawImage(currentImage);
     ui->vp_plotterRenderer->setPreprocessedImage(QImage());
     float scale = std::min(ui->vp_plotterRenderer->getDrawAreaSize().x()/currentImage.width(),
@@ -210,13 +212,18 @@ void MainWindow::onTimerReadSerial()
     while(serialPort.canReadLine()){
         QByteArray data = serialPort.readLine();
         if(data.length() > 0){
+
             ui->te_output->moveCursor (QTextCursor::End);
 
             QTextEdit textEdit;
             textEdit.setPlainText(QString(data));
             QString ret = textEdit.toHtml();
+            // Error recieved ?
+            if(ret.contains("ACK") && !ret.contains("ACK: 0"))
+                ui->te_output->insertHtml(QString("<font color=\"red\">%1</font>").arg(ret));
+            else
+                ui->te_output->insertHtml(QString("<font color=\"black\">%1</font>").arg(ret));
 
-            ui->te_output->insertHtml(QString("<font color=\"black\">%1</font>").arg(ret));
             ui->te_output->moveCursor (QTextCursor::End);
 
             // Send data to cmd executor
@@ -230,37 +237,37 @@ void MainWindow::onClickLeftDown(){}
 void MainWindow::onClickRightUp(){}
 void MainWindow::onClickRightDown(){}
 void MainWindow::onClickMoveUp(){
-    sendCmd("G91\n");
-    sendCmd(QString("G0 Y-%1\n").arg(ui->sb_move_dist->value()));
-    sendCmd("G90\n");
+    sendCmd(USE_RELATIVE_POS.append("\n"));
+    sendCmd(MOVE_Y(-ui->sb_move_dist->value()).append("\n"));
+    sendCmd(USE_ABSOLUTE_POS.append("\n"));
 }
 void MainWindow::onClickMoveLeft(){
-    sendCmd("G91\n");
-    sendCmd(QString("G0 X-%1\n").arg(ui->sb_move_dist->value()));
-    sendCmd("G90\n");
+    sendCmd(USE_RELATIVE_POS.append("\n"));
+    sendCmd(MOVE_X(-ui->sb_move_dist->value()).append("\n"));
+    sendCmd(USE_ABSOLUTE_POS.append("\n"));
 }
 void MainWindow::onClickMoveRight(){
-    sendCmd("G91\n");
-    sendCmd(QString("G0 X%1\n").arg(ui->sb_move_dist->value()));
-    sendCmd("G90\n");
+    sendCmd(USE_RELATIVE_POS.append("\n"));
+    sendCmd(MOVE_X(ui->sb_move_dist->value()).append("\n"));
+    sendCmd(USE_ABSOLUTE_POS.append("\n"));
 }
 void MainWindow::onClickMoveDown(){
-    sendCmd("G91\n");
-    sendCmd(QString("G0 Y%1\n").arg(ui->sb_move_dist->value()));
-    sendCmd("G90\n");
+    sendCmd(USE_RELATIVE_POS.append("\n"));
+    sendCmd(MOVE_Y(ui->sb_move_dist->value()).append("\n"));
+    sendCmd(USE_ABSOLUTE_POS);
 }
 void MainWindow::onClickPenUpDown(){
     if(ui->b_pen_updown->text().compare("Pen Down")==0){
-        sendCmd("M3\n");
+        sendCmd(PEN_DOWN.append("\n"));
         ui->b_pen_updown->setText("Pen Up");
     }else{
-        sendCmd("M4\n");
+        sendCmd(PEN_UP.append("\n"));
         ui->b_pen_updown->setText("Pen Down");
     }
 }
 void MainWindow::onClickSetSpeed(){
     float speed = ui->sb_speed->value();
-    sendCmd(QString("G0 F%1\n   ").arg(speed));
+    sendCmd(SPEED_DIV(speed).append("\n"));
 }
 void MainWindow::onCmdExecFinished(){
     ui->b_execute->setText("Execute");
@@ -288,14 +295,14 @@ void MainWindow::onClickCalibrate()
     float h = ui->sb_calib_height->value();
     float l = ui->sb_calib_left->value();
     float r = ui->sb_calib_right->value();
-    sendCmd(QString("M5 B%1 L%2 R%3\n").arg(b).arg(l).arg(r));
+    sendCmd(CALIBRATE(b,l,r).append("\n"));
 
     ui->vp_plotterRenderer->setPlotterSize(b,h);
     ui->sb_pos_x->setMaximum(b);
     ui->sb_pos_y->setMaximum(h);
 }
 void MainWindow::onPollPosition(){
-    serialPort.write("M8\n");
+    serialPort.write(GET_POSITION.append("\n").toLocal8Bit());
     QByteArray data = serialPort.readLine();
     QString strData(data);
     QStringList list = strData.split(" ");
@@ -370,4 +377,22 @@ void MainWindow::onClickShowRadio()
     }else{
         ui->vp_plotterRenderer->showItems(VPlotterRenderer::SIMULATION);
     }
+}
+void MainWindow::onClickGenerateBoundingBox()
+{
+    QStringList cmds;
+    cmds.append(PEN_UP);
+    cmds.append(MOVE_TO(ui->sb_pos_x->value(),ui->sb_pos_y->value()));
+    cmds.append(PEN_DOWN);
+    cmds.append(USE_RELATIVE_POS);
+    cmds.append(MOVE_TO(ui->sb_scale->value()*currentImage.width(),0));
+    cmds.append(MOVE_TO(0,ui->sb_scale->value()*currentImage.height()));
+    cmds.append(MOVE_TO(-ui->sb_scale->value()*currentImage.width(),0));
+    cmds.append(MOVE_TO(0,-ui->sb_scale->value()*currentImage.height()));
+    cmds.append(USE_ABSOLUTE_POS);
+    cmds.append(PEN_UP);
+    setCommandList(cmds,true);
+
+
+
 }

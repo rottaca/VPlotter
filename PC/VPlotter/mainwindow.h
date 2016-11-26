@@ -52,6 +52,8 @@ public slots:
     void onSimulationFinished();
     void onClickConvert();
     void onClickShowRadio();
+    void onClickGenerateBoundingBox();
+
 signals:
     void onSerialAnswerRecieved(QString);
     void onStopCmdExec();

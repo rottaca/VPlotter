@@ -1,36 +1,7 @@
 #include <Arduino.h>
-
-
-// Uncomment to enable debug prints
-//#define DEBUG_PRINTS
-
+#include "settings.h"
+#include "macros.h"
 #include "hardwareCtrl.h"
-
-// Size of the ringbuffer that contains all commands
-#define CMD_RING_BUFFER_SIZE 20
-// Size of the data that is read as a single piece
-#define MAX_CMD_SIZE 32
-// Maximum number of gcode parameters
-#define MAX_GCODE_PARAMS 5
-// Seperator for gcode parameters
-#define GCODE_PARAM_SEPERATOR " "
-// Seperator for gcode parameters
-#define GCODE_COMMAND_SEPERATOR '\n'
-// Timeout for serial read
-#define SERIAL_TIMEOUT 100
-// ACK and error codes
-#define SEND_NOERROR Serial.println("ACK: 0")
-#define SEND_ERROR(err) Serial.println("ACK: " + String(err))
-enum ERROR_CODES{
-  ERROR_CALIB_FIRST = 1,
-  ERROR_INVALID_PARAM,
-  ERROR_UNKNOWN_CODE,
-  ERROR_CALIB_FAILED,
-  ERROR_INVALID_STATE
-};
-#define SEND_BUSY Serial.println("BUSY");
-
-
 
 // Forward declarations
 void processSerialInput();
@@ -197,17 +168,17 @@ bool executeGCode(int code, char** params) {
 }
 void executeMCode(int code, char** params) {
   switch (code) {
-  case 3: // PEN_UP
-    if(hw_ctrl_set_drawing(false))
-      SEND_NOERROR;
-    else
-      SEND_ERROR(ERROR_INVALID_STATE);
-    break;
-  case 4: // PEN_DOWN
+  case 3: // DOWN
     if(hw_ctrl_set_drawing(true))
       SEND_NOERROR;
     else
-      SEND_ERROR(ERROR_INVALID_STATE);
+      SEND_ERROR(ERROR_CALIB_FIRST);
+    break;
+  case 4: // UP
+    if(hw_ctrl_set_drawing(false))
+      SEND_NOERROR;
+    else
+      SEND_ERROR(ERROR_CALIB_FIRST);
     break;
   case 5:
     executeM5(params);
@@ -305,7 +276,7 @@ boolean executeG0(char** params){
       else
         tmp = X + strtod(&p[1], &errCheck);
 
-      if (&params[0][1] == errCheck)
+      if (&p[1] == errCheck)
       {
         SEND_ERROR(ERROR_INVALID_PARAM);
         return false;
@@ -323,7 +294,7 @@ boolean executeG0(char** params){
       else
         tmp = Y + strtod(&p[1], &errCheck);
 
-      if (&params[0][1] == errCheck)
+      if (&p[1] == errCheck)
       {
         SEND_ERROR(ERROR_INVALID_PARAM);
         return false;
@@ -333,6 +304,15 @@ boolean executeG0(char** params){
         Y = tmp;
       }
       break;
+    }
+    case 'F':{
+      uint8_t tmp;
+      tmp = strtol(&p[1], &errCheck, 10);
+      if(&p[0] == errCheck){
+        SEND_ERROR(ERROR_INVALID_PARAM);
+        return false;
+      }
+      hw_ctrl_set_speed_devider(tmp);
     }
   }
 }

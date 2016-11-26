@@ -52,6 +52,13 @@ void ConvertForm::onClickConvert()
                                                          l2w);
         }
         break;
+        case 2:{
+        cmds = ConvertImageAlgorithms::convertWave(preproImg,
+                                                         ui->hs_sin_y_sampling->value()/imgScale,
+                                                         ui->hs_sin_x_sampling->value()/imgScale,
+                                                         l2w);
+        }
+        break;
         default:
             break;
     }

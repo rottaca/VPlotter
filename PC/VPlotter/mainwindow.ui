@@ -30,9 +30,9 @@
        <item>
         <layout class="QGridLayout" name="gridLayout_3">
          <item row="1" column="1">
-          <widget class="QLabel" name="label_9">
+          <widget class="QLabel" name="l_img_path">
            <property name="text">
-            <string>path</string>
+            <string/>
            </property>
           </widget>
          </item>
@@ -52,19 +52,19 @@
          <item row="1" column="2">
           <widget class="QPushButton" name="b_openImage">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
            <property name="maximumSize">
             <size>
-             <width>40</width>
+             <width>100</width>
              <height>16777215</height>
             </size>
            </property>
            <property name="text">
-            <string>...</string>
+            <string>load image</string>
            </property>
           </widget>
          </item>
@@ -166,7 +166,7 @@
        </sizepolicy>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab_ctrl">
        <attribute name="title">
@@ -434,6 +434,9 @@
              <property name="maximum">
               <number>100000</number>
              </property>
+             <property name="value">
+              <number>1</number>
+             </property>
             </widget>
            </item>
            <item row="1" column="1">
@@ -531,6 +534,23 @@
            <string>ImageConversionSettings</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_5">
+           <item row="1" column="4">
+            <widget class="QDoubleSpinBox" name="sb_pos_y">
+             <property name="maximum">
+              <double>10000.000000000000000</double>
+             </property>
+             <property name="singleStep">
+              <double>10.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_3">
+             <property name="text">
+              <string>Scale (%)</string>
+             </property>
+            </widget>
+           </item>
            <item row="1" column="2">
             <widget class="QDoubleSpinBox" name="sb_pos_x">
              <property name="maximum">
@@ -541,13 +561,17 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="4">
-            <widget class="QDoubleSpinBox" name="sb_pos_y">
-             <property name="maximum">
-              <double>10000.000000000000000</double>
+           <item row="0" column="0">
+            <widget class="QPushButton" name="b_convert">
+             <property name="text">
+              <string>Convert</string>
              </property>
-             <property name="singleStep">
-              <double>10.000000000000000</double>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_12">
+             <property name="text">
+              <string>Position (X,Y)</string>
              </property>
             </widget>
            </item>
@@ -564,10 +588,17 @@
              </property>
             </widget>
            </item>
-           <item row="2" column="0">
-            <widget class="QLabel" name="label_3">
+           <item row="3" column="2" colspan="3">
+            <widget class="QLabel" name="l_imgBounds">
              <property name="text">
-              <string>Scale (%)</string>
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_15">
+             <property name="text">
+              <string>Size (WxH):</string>
              </property>
             </widget>
            </item>
@@ -587,31 +618,10 @@
              </property>
             </widget>
            </item>
-           <item row="0" column="0">
-            <widget class="QPushButton" name="b_convert">
+           <item row="4" column="2" colspan="3">
+            <widget class="QPushButton" name="b_gen_boundinBox">
              <property name="text">
-              <string>Convert</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_12">
-             <property name="text">
-              <string>Position (X,Y)</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QLabel" name="label_15">
-             <property name="text">
-              <string>Size (WxH):</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="2" colspan="3">
-            <widget class="QLabel" name="l_imgBounds">
-             <property name="text">
-              <string/>
+              <string>Generate Bounding Box</string>
              </property>
             </widget>
            </item>
@@ -637,8 +647,14 @@
                  <verstretch>0</verstretch>
                 </sizepolicy>
                </property>
+               <property name="maximumSize">
+                <size>
+                 <width>50</width>
+                 <height>16777215</height>
+                </size>
+               </property>
                <property name="text">
-                <string>...</string>
+                <string>Load</string>
                </property>
               </widget>
              </item>
@@ -646,6 +662,25 @@
               <widget class="QLabel" name="l_loaded_cmd_file">
                <property name="text">
                 <string>File:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="2">
+              <widget class="QPushButton" name="b_load_cmdFile_2">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>50</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Save</string>
                </property>
               </widget>
              </item>
@@ -765,6 +800,43 @@ p, li { white-space: pre-wrap; }
    <header>vplotterrenderer.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>le_portName</tabstop>
+  <tabstop>b_connect</tabstop>
+  <tabstop>sb_calib_base</tabstop>
+  <tabstop>sb_calib_height</tabstop>
+  <tabstop>sb_calib_left</tabstop>
+  <tabstop>sb_calib_right</tabstop>
+  <tabstop>b_calib</tabstop>
+  <tabstop>sb_speed</tabstop>
+  <tabstop>b_set_speed</tabstop>
+  <tabstop>sb_move_dist</tabstop>
+  <tabstop>b_move_up</tabstop>
+  <tabstop>b_move_left</tabstop>
+  <tabstop>b_pen_updown</tabstop>
+  <tabstop>b_move_right</tabstop>
+  <tabstop>b_move_down</tabstop>
+  <tabstop>b_openImage</tabstop>
+  <tabstop>cb_penUD</tabstop>
+  <tabstop>cb_nondrawing</tabstop>
+  <tabstop>rb_show_raw</tabstop>
+  <tabstop>rb_show_preproc</tabstop>
+  <tabstop>rb_show_simulation</tabstop>
+  <tabstop>vp_plotterRenderer</tabstop>
+  <tabstop>te_output</tabstop>
+  <tabstop>le_command</tabstop>
+  <tabstop>tabWidget</tabstop>
+  <tabstop>b_convert</tabstop>
+  <tabstop>sb_pos_x</tabstop>
+  <tabstop>sb_pos_y</tabstop>
+  <tabstop>sb_scale</tabstop>
+  <tabstop>b_gen_boundinBox</tabstop>
+  <tabstop>b_load_cmdFile</tabstop>
+  <tabstop>b_load_cmdFile_2</tabstop>
+  <tabstop>te_comand_script</tabstop>
+  <tabstop>b_simulate</tabstop>
+  <tabstop>b_execute</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

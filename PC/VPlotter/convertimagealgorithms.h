@@ -14,7 +14,7 @@ public:
 
     static QStringList convertSquares(QImage img, int initialSize, int maxRecursion, QMatrix3x3 l2wTrans);
 
-    static QStringList convertSin(QImage img, float maxAmplitude, int sampling, int frequency, QMatrix3x3 l2wTrans);
+    static QStringList convertWave(QImage img, float ySampling, int xSampling, QMatrix3x3 l2wTrans);
 
     static QMatrix3x3 computeLocalToWorldTransform(QVector2D imgPos, float scale);
 private:

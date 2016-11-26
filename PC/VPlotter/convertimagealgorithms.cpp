@@ -3,10 +3,7 @@
 #include "graphicseffects.h"
 #include <QtMath>
 #include <QMatrix>
-
-#define MOVE_TO(X,Y) QString("G0 X%1 Y%2").arg(X).arg(Y)
-#define PEN_UP "M4"
-#define PEN_DOWN  "M3"
+#include "gcodecommands.h"
 
 QStringList ConvertImageAlgorithms::convertLines(QImage &img, int angle, int threshold, int sampling
                                                  , QMatrix3x3 l2wTrans){
@@ -50,8 +47,10 @@ QStringList ConvertImageAlgorithms::convertLines(QImage &img, int angle, int thr
                 if(c > threshold){
                     if(!drawing){
                         QVector2D worldPos = convertLocalToWorld(posCurr,l2wTrans);
+                        lineCmds.append(SPEED_DIV(1));
                         lineCmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
                         lineCmds.append(PEN_DOWN);
+                        lineCmds.append(SPEED_DIV(5));
                         drawing = true;
                     }
                 }else{
@@ -121,8 +120,10 @@ QStringList ConvertImageAlgorithms::convertLines(QImage &img, int angle, int thr
                     if(!drawing){
                         QVector2D worldPos = convertLocalToWorld(posCurr,l2wTrans);
                         lineCmds.append(PEN_UP);
+                        lineCmds.append(SPEED_DIV(1));
                         lineCmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
                         lineCmds.append(PEN_DOWN);
+                        lineCmds.append(SPEED_DIV(5));
                         drawing = true;
                     }
                 }else{
@@ -160,6 +161,32 @@ QStringList ConvertImageAlgorithms::convertLines(QImage &img, int angle, int thr
             for(int i = 0; i < lineCmds.size(); i++)
                 cmds.append(lineCmds.at(i));
         }
+    }
+
+    // Postprocess computed lines
+    QList<int> indexList;
+    QVector2D startPos(-INFINITY,-INFINITY),endPos(-INFINITY,-INFINITY);
+    bool drawing = true;
+    for(int i = 0; i < cmds.length(); i++){
+        QString cmd = cmds.at(i);
+        if(cmd.contains("M3")){
+            if(drawing)
+                indexList.append(i);
+            drawing = true;
+        }else if(cmd.contains("M4")){
+            if(!drawing)
+                indexList.append(i);
+            drawing = false;
+        }else if(cmd.contains("G0")){
+            if(drawing){
+                // TODO
+            }
+        }
+    }
+
+    // Remove bad elements
+    for(int i = 0; i < indexList.length();i++){
+        cmds.removeAt(indexList.at(i)-i);
     }
 
 
@@ -200,41 +227,36 @@ QStringList ConvertImageAlgorithms::convertMultiLines(QImage img, bool* drawLine
     return cmds;
 }
 
-QStringList ConvertImageAlgorithms::convertSin(QImage img, float maxAmplitude, int sampling,
-                                               int frequency, QMatrix3x3 l2wTrans)
+QStringList ConvertImageAlgorithms::convertWave(QImage img, float ySampling, int xSampling,
+                                               QMatrix3x3 l2wTrans)
 {
 
     QStringList cmds;
-//    for(int y = 0; y < h; y+= sampling){
-//        uchar* imgPtr = img.scanLine(y);
+    for(int y = 0; y < img.height(); y= qRound(y+ySampling)){
+        QVector2D worldPos = convertLocalToWorld(QVector2D(0,y),l2wTrans);
+        cmds.append(SPEED_DIV(1));
+        cmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
+        cmds.append(PEN_DOWN);
+        cmds.append(SPEED_DIV(5));
+        uchar* imgPtr = img.scanLine(y);
 
-//        for(int x = 0; x < w; x++){
+        float x = 0;
+        while(x < img.width()){
+            uchar c = imgPtr[qRound(x)];
 
-//            if(c > threshold){
-//                if(!drawing){
-//                    QVector2D worldPos = convertLocalToWorld(posCurr,l2wTrans);
-//                    lineCmds.append(PEN_UP);
-//                    lineCmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
-//                    lineCmds.append(PEN_DOWN);
-//                    drawing = true;
-//                }
-//            }else{
-//                if(drawing){
-//                    QVector2D worldPos = convertLocalToWorld(posCurr,l2wTrans);
-//                    lineCmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
-//                    drawing = false;
-//                }
-//            }
-
-//            imgPtr += dirY*scanLineWidth + dirX;
-//            posCurr.setX(posCurr.x()+dirX);
-//            posCurr.setY(posCurr.y()+dirY);
-
-//            if(posCurr.x()<0 ||posCurr.x()>=w || posCurr.y()>=h)
-//                break;
-//        }
-//    }
-
+            float width = (float)c/255*xSampling+2;
+            QVector2D worldPos = convertLocalToWorld(QVector2D(x,y),l2wTrans);
+            cmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
+            worldPos = convertLocalToWorld(QVector2D(x+width/2,y),l2wTrans);
+            cmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
+            worldPos = convertLocalToWorld(QVector2D(x+width/2,y+ySampling-1),l2wTrans);
+            cmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
+            worldPos = convertLocalToWorld(QVector2D(x+width,y+ySampling-1),l2wTrans);
+            cmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
+            x+=width;
+        }
+        cmds.append(PEN_UP);
+    }
     return cmds;
 }
 
@@ -280,9 +302,11 @@ QStringList ConvertImageAlgorithms::createSquare(QVector2D center, float size, Q
     QVector2D lu(center - QVector2D(size/2,size/2));
     QStringList cmds;
     QVector2D tmp = convertLocalToWorld(lu,l2wTrans);
+    cmds.append(SPEED_DIV(1));
     cmds.append(MOVE_TO(tmp.x(),tmp.y()));
 
     cmds.append(PEN_DOWN);
+    cmds.append(SPEED_DIV(5));
     tmp = convertLocalToWorld(lu+QVector2D(0,1)*size,l2wTrans);
     cmds.append(MOVE_TO(tmp.x(),tmp.y()));
     tmp = convertLocalToWorld(lu+QVector2D(1,1)*size,l2wTrans);
