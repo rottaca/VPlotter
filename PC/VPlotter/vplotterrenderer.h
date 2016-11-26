@@ -49,9 +49,11 @@ public:
         fitInView(p_scene->sceneRect(),Qt::KeepAspectRatio);
     }
 
-    void setRenderOptions(bool renderNonDraw, bool renderUD){
+    void setRenderOptions(bool renderNonDraw, bool renderUD, bool animate, float animSpeed){
         renderNonDrawMove = renderNonDraw;
         renderPenUD = renderUD;
+        this->animate = animate;
+        this->animationSpeed = animSpeed;
         // Rerun rendering
         simulateCommands(cmds);
     }
@@ -111,6 +113,8 @@ private:
     bool absolutePositioning;
     QVector2D pos; // Start postion 0,0
     enum DisplayMode dispMode;
+    float animationSpeed;
+    bool animate;
 
     int motorPadding;
 };

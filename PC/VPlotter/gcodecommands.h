@@ -13,6 +13,7 @@
 #define GET_POSITION QString("M8")
 #define USE_ABSOLUTE_POS QString("G90")
 #define USE_RELATIVE_POS QString("G91")
+#define GCODE_HOME QString("G28")
 
 #endif // GCODECOMMANDS
 

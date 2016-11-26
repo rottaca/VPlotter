@@ -55,7 +55,7 @@ void CommandListExecutor::onRecieveAnswer(QString answ)
             QString cmd;
             do{
                 cmd = cmdList.at(currCmdIdx++);
-            }while(cmd.contains(";") && currCmdIdx <= cmdList.size());
+            }while((cmd.contains(";") || cmd.trimmed().isEmpty()) && currCmdIdx <= cmdList.size());
             if(currCmdIdx > cmdList.size()){
                 emit onExecutionFinished();
                 executingCmds = false;

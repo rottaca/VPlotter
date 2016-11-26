@@ -42,7 +42,7 @@ void setup() {
 
   hw_ctrl_init();
   Serial.println("System initialized");
-  Serial.println("Version 0.1");
+  Serial.println("Version 1.0");
 }
 
 void loop() {

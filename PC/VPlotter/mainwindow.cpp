@@ -35,13 +35,18 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->b_simulate,SIGNAL(clicked()),this,SLOT(onClickSimulateCmdFile()));
     connect(ui->cb_nondrawing,SIGNAL(clicked()),this,SLOT(onChangeRenderOptions()));
     connect(ui->cb_penUD,SIGNAL(clicked()),this,SLOT(onChangeRenderOptions()));
+    connect(ui->cb_animate,SIGNAL(clicked()),this,SLOT(onChangeRenderOptions()));
+    connect(ui->sb_animate_speed,SIGNAL(valueChanged(double)),this,SLOT(onChangeRenderOptions()));
     connect(ui->vp_plotterRenderer,SIGNAL(onSimulationFinished()),this,SLOT(onSimulationFinished()));
     connect(ui->b_convert,SIGNAL(clicked()),this,SLOT(onClickConvert()));
     connect(ui->b_load_cmdFile,SIGNAL(clicked()),this,SLOT(onClickOpenCmdFile()));
+    connect(ui->b_save_cmdFile,SIGNAL(clicked()),this,SLOT(onClickSaveCmdFile()));
     connect(ui->rb_show_preproc,SIGNAL(clicked()),this,SLOT(onClickShowRadio()));
     connect(ui->rb_show_raw,SIGNAL(clicked()),this,SLOT(onClickShowRadio()));
     connect(ui->rb_show_simulation,SIGNAL(clicked()),this,SLOT(onClickShowRadio()));
     connect(ui->b_gen_boundinBox,SIGNAL(clicked()),this,SLOT(onClickGenerateBoundingBox()));
+    connect(ui->b_home,SIGNAL(clicked()),this,SLOT(onClickHome()));
+    connect(ui->te_comand_script,SIGNAL(textChanged()),this,SLOT(onCommandEditorChanged()));
 
     timer = new QTimer();
     connect(timer,SIGNAL(timeout()),this,SLOT(onPollPosition()));
@@ -60,6 +65,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->vp_plotterRenderer->setPlotterSize(b,h);
     ui->sb_pos_x->setMaximum(b);
     ui->sb_pos_y->setMaximum(h);
+
+    onChangeRenderOptions();
 
     convertForm = new ConvertForm(this);
 }
@@ -89,7 +96,7 @@ void MainWindow::printStatus(QString msg, bool error)
 void MainWindow::setCommandList(QStringList cmds, bool autoSimulate)
 {
     ui->te_comand_script->setPlainText(cmds.join("\n"));
-    ui->l_editor_lines_of_code->setText(QString("%1").arg(cmds.length()));
+    onCommandEditorChanged();
     if(autoSimulate){
         ui->vp_plotterRenderer->abortSimulation();
         ui->b_simulate->setText("Simulate");
@@ -104,32 +111,72 @@ void MainWindow::setPreprocessedImage(QImage img)
     ui->vp_plotterRenderer->showItems(VPlotterRenderer::PREPROC);
 }
 
+void MainWindow::onClickSaveCmdFile()
+{
+
+    QString name = QFileDialog::getSaveFileName(this,
+       "Save command File", "", "V Plot Files (*.vplot)");
+
+    if(name.isNull())
+        return;
+
+    QFile file(name);
+    if(!file.open(QIODevice::WriteOnly)) {
+        printStatus(QString("Can't save cmd file %1").arg(name),true);
+        return;
+    }
+
+    QString cmds = ui->te_comand_script->toPlainText();
+    file.write(cmds.toLocal8Bit(),cmds.length());
+
+    printStatus(QString("Cmd file saved: %1").arg(name));
+
+}
+
+void MainWindow::onClickOpenCmdFile()
+{
+    QString name = QFileDialog::getOpenFileName(this,
+       "Open Cmd File", "", "V Plot Files (*.vplot)");
+
+    if(name.isNull())
+        return;
+
+    QFile file(name);
+    if(!file.open(QIODevice::ReadOnly)) {
+        printStatus(QString("Can't load cmd file %1").arg(name),true);
+        return;
+    }
+    QString txt = file.readAll();
+    ui->te_comand_script->setPlainText(txt);
+    onCommandEditorChanged();
+}
+
 void MainWindow::onClickOpenFile()
 {
     QString file = QFileDialog::getOpenFileName(this,
-       "Open Image", "~", "Image Files (*.png *.jpg *.bmp)");
+       "Open Image", "", "Image Files (*.png *.jpg *.bmp *.jpeg)");
 
-    if(file.isNull())
-        return;
-
-    if(!currentImage.load(file))
+    if(file.isNull() || !currentImage.load(file))
     {
         printStatus(QString("Can't open image: %1").arg(file),true);
-        ui->gb_imageConvert->setEnabled(false);
+        ui->fr_conversationSettings->setEnabled(false);
         ui->vp_plotterRenderer->setRawImage(QImage());
         ui->vp_plotterRenderer->setPreprocessedImage(QImage());
         ui->vp_plotterRenderer->setImageBounds(0,0,0);
-
+        ui->l_img_path->setText("");
         return;
     }
+
     // Only use grayscale images
     currentImage = currentImage.convertToFormat(QImage::Format_Grayscale8);
-    //currentImage = GraphicsEffects::applyBlur(currentImage);
-    //currentImage = GraphicsEffects::applySobel(currentImage);
-    //currentImage = GraphicsEffects::applyBinarize(currentImage,50,255,0);
-    ui->l_img_path->setText(file);
+
+    // Truncate text on the right and don't show the full (long) filename
+    QFontMetrics metrix(ui->l_img_path->font());
+    ui->l_img_path->setText(metrix.elidedText(file, Qt::ElideLeft, ui->l_img_path->width()));
+
     ui->vp_plotterRenderer->setRawImage(currentImage);
     ui->vp_plotterRenderer->setPreprocessedImage(QImage());
+    // TODO
     float scale = std::min(ui->vp_plotterRenderer->getDrawAreaSize().x()/currentImage.width(),
                       ui->vp_plotterRenderer->getDrawAreaSize().y()/currentImage.height());
     QVector2D pos = ui->vp_plotterRenderer->getDrawAreaOrigin();
@@ -141,7 +188,7 @@ void MainWindow::onClickOpenFile()
     ui->sb_scale->setValue(scale);
     ui->sb_pos_x->setValue(pos.x());
     ui->sb_pos_y->setValue(pos.y());
-    ui->gb_imageConvert->setEnabled(true);
+    ui->fr_conversationSettings->setEnabled(true);
     ui->rb_show_raw->setChecked(true);
     ui->vp_plotterRenderer->showItems(VPlotterRenderer::RAW);
     ui->vp_plotterRenderer->resetScale();
@@ -302,7 +349,7 @@ void MainWindow::onClickCalibrate()
     ui->sb_pos_y->setMaximum(h);
 }
 void MainWindow::onPollPosition(){
-    serialPort.write(GET_POSITION.append("\n").toLocal8Bit());
+    sendCmd(GET_POSITION.append("\n"));
     QByteArray data = serialPort.readLine();
     QString strData(data);
     QStringList list = strData.split(" ");
@@ -312,22 +359,6 @@ void MainWindow::onPollPosition(){
         ui->l_pos->setText("unknown...");
 }
 
-void MainWindow::onClickOpenCmdFile()
-{
-    QString name = QFileDialog::getOpenFileName(this,
-       "Open Cmd File", "~", "Text Files (*.txt)");
-
-    if(name.isNull())
-        return;
-
-    QFile file(name);
-    if(!file.open(QIODevice::ReadOnly)) {
-        printStatus(QString("Can't load cmd file %1").arg(name),true);
-        return;
-    }
-    QString txt = file.readAll();
-    ui->te_comand_script->setPlainText(txt);
-}
 
 void MainWindow::onClickExecuteCmdFile()
 {
@@ -355,7 +386,9 @@ void MainWindow::onClickSimulateCmdFile()
 void MainWindow::onChangeRenderOptions()
 {
     ui->vp_plotterRenderer->setRenderOptions(ui->cb_nondrawing->isChecked(),
-                                             ui->cb_penUD->isChecked());
+                                             ui->cb_penUD->isChecked(),
+                                             ui->cb_animate->isChecked(),
+                                             ui->sb_animate_speed->value());
 }
 void MainWindow::onSimulationFinished()
 {
@@ -378,21 +411,32 @@ void MainWindow::onClickShowRadio()
         ui->vp_plotterRenderer->showItems(VPlotterRenderer::SIMULATION);
     }
 }
+void MainWindow::onCommandEditorChanged()
+{
+    long cnt = ui->te_comand_script->document()->blockCount();
+    ui->l_editor_lines_of_code->setText(QString("%1").arg(cnt));
+}
+
 void MainWindow::onClickGenerateBoundingBox()
 {
     QStringList cmds;
     cmds.append(PEN_UP);
-    cmds.append(MOVE_TO(ui->sb_pos_x->value(),ui->sb_pos_y->value()));
+    cmds.append(MOVE_TO_AND_SPEED(ui->sb_pos_x->value(),ui->sb_pos_y->value(),1));
     cmds.append(PEN_DOWN);
     cmds.append(USE_RELATIVE_POS);
-    cmds.append(MOVE_TO(ui->sb_scale->value()*currentImage.width(),0));
-    cmds.append(MOVE_TO(0,ui->sb_scale->value()*currentImage.height()));
-    cmds.append(MOVE_TO(-ui->sb_scale->value()*currentImage.width(),0));
-    cmds.append(MOVE_TO(0,-ui->sb_scale->value()*currentImage.height()));
+    cmds.append(SPEED_DIV(5));
+    cmds.append(MOVE_X(ui->sb_scale->value()*currentImage.width()));
+    cmds.append(MOVE_Y(ui->sb_scale->value()*currentImage.height()));
+    cmds.append(MOVE_X(-ui->sb_scale->value()*currentImage.width()));
+    cmds.append(MOVE_Y(-ui->sb_scale->value()*currentImage.height()));
     cmds.append(USE_ABSOLUTE_POS);
     cmds.append(PEN_UP);
     setCommandList(cmds,true);
+}
 
-
-
+void MainWindow::onClickHome()
+{
+    sendCmd(PEN_UP.append("\n"));
+    sendCmd(SPEED_DIV(1).append("\n"));
+    sendCmd(GCODE_HOME.append("\n"));
 }

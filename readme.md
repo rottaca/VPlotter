@@ -1,9 +1,14 @@
 # V-Plotter Project
 
+## Setup
+The system consist of two stepper motors which control the draw position and a servo which controls the drawing state (drawing/not drawing).
+The hardware is controlled by a Arduino Nano V3 that understands basic G-Code commands (similar to 3D-Printer-GCodes).
+
+A host software, written in C++ with a Qt user interface sends the commands to the controller. The software is able (in the future) to convert images and SVG graphics into gcode commands. The programm then simulates the generated movements and renderes the result in a graphics scene.
+
 ## Overview
 
-# GUI
-# General overview
+# GUI - overview
 The graphical user interface is implemented in cpp and is based on the Qt-framework. The image below shows the user interface after startup.
 The interface is grouped in 4 different parts.
 
@@ -47,25 +52,19 @@ The software is now able to simulate/animate the given sequence of commands by p
 The checkboxes above the drawingarea are able to control the rendering process. It is possible to show/hide the non-drawing moves and the pen up/down movements. With the radio buttons below, the user is able to quickly switch between the raw, the preprocessed and the converted image.
 ![ConvertWindow](assets/vplotter_convert6.png)
 
-## Setup
-The system consist of two stepper motors which control the draw position and a servo which controls the drawing state (drawing/not drawing).
-The hardware is controlled by a Arduino Nano V3 that understands basic G-Code commands (similar to 3D-Printer-GCodes).
-
-A host software, written in C++ with a Qt user interface sends the commands to the controller. The software is able (in the future) to convert images and SVG graphics into gcode commands. The programm then simulates the generated movements and renderes the result in a graphics scene.
-
 
 ## Supported G-Code-Commands
 
 The firmware supports currently only some basic commands.
 ### GCode
-- G0 \[X\_\] \[Y\_\]  -> Move to/add X,Y
-- G28                 -> Go To Home
-- G90                 -> Absolute Positioning
-- G91                 -> Relative Positioning
+- G0 \[X\_\] \[Y\_\] \[F\_\]  -> Move to/add X,Y and set speed devisor F
+- G28                         -> Go To Home
+- G90                         -> Absolute Positioning
+- G91                         -> Relative Positioning
 
 ### MCodes
-- M3                  -> Move pen down (draw)
-- M4                  -> Lift pen (don't draw)
-- M5 B\_ L\_ R\_      -> Calibrates the hardware. Defines baselength B and left and right cord length.
-- M7                  -> Debug output
-- M8                  -> Get current position (X Y)
+- M3                          -> Move pen down (draw)
+- M4                          -> Lift pen (don't draw)
+- M5 B\_ L\_ R\_              -> Calibrates the hardware. Defines baselength B and left and right cord length.
+- M7                          -> Debug output
+- M8                          -> Get current position (X Y)

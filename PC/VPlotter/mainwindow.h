@@ -4,7 +4,6 @@
 #include <QMainWindow>
 #include <QtSerialPort/QtSerialPort>
 
-#include "imageconverter.h"
 #include "commandlistexecutor.h"
 
 namespace Ui {
@@ -47,12 +46,15 @@ public slots:
     void onClickOpenCmdFile();
     void onClickExecuteCmdFile();
     void onClickSimulateCmdFile();
+    void onClickSaveCmdFile();
     void onCmdExecFinished();
     void onChangeRenderOptions();
     void onSimulationFinished();
     void onClickConvert();
     void onClickShowRadio();
     void onClickGenerateBoundingBox();
+    void onClickHome();
+    void onCommandEditorChanged();
 
 signals:
     void onSerialAnswerRecieved(QString);
@@ -63,7 +65,6 @@ private:
     Ui::MainWindow *ui;
     QSerialPort serialPort;
     QImage currentImage;
-    ImageConverter imgConverter;
     QTimer* timer;
     CommandListExecutor* cmdListExec;
     ConvertForm* convertForm;

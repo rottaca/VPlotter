@@ -24,6 +24,8 @@ VPlotterRenderer::VPlotterRenderer(QWidget *parent):QGraphicsView(new QGraphicsS
     setMotorPadding(60);
     renderPenUD = true;
     renderNonDrawMove = true;
+    animationSpeed = 1;
+    animate = true;
     showItems(RAW);
     connect(&simulationTimer,SIGNAL(timeout()),this,SLOT(onSimulationTimerOverflow()));
 }
@@ -79,7 +81,14 @@ void VPlotterRenderer::simulateCommands(QStringList cmds)
     imgItemSimulation->setPixmap(pixmap);
     this->cmds = cmds;
     cmdIdx = 0;
-    simulationTimer.start(0);
+
+    simulationTimer.setSingleShot(!animate);
+    if(animate)
+        simulationTimer.setInterval(100/animationSpeed);
+    else
+        simulationTimer.setInterval(0);
+
+    simulationTimer.start();
 }
 void VPlotterRenderer::abortSimulation()
 {
@@ -87,7 +96,9 @@ void VPlotterRenderer::abortSimulation()
 }
 
 void VPlotterRenderer::onSimulationTimerOverflow(){
-    QPixmap pxMap = imgItemSimulation->pixmap();
+    QPixmap pxMap;
+    pxMap = QPixmap(imgItemSimulation->pixmap());
+
     QPainter painter(&pxMap);
     QPen Black((QColor(0,0,0)),1);  // Drawing
     QPen Red((QColor(255,0,0)),1);  // Not Drawing
@@ -100,6 +111,7 @@ void VPlotterRenderer::onSimulationTimerOverflow(){
         emit onSimulationFinished();
         return;
     }
+    bool anythingDrawn = false;
     do{
         QString cmd = cmds.at(cmdIdx++);
 
@@ -118,6 +130,7 @@ void VPlotterRenderer::onSimulationTimerOverflow(){
                 painter.setPen(Red);
                 painter.drawLine((int)pos.x(),(int)pos.y(),(int)newP.x(),(int)newP.y());
             }
+            anythingDrawn = true;
             pos = newP;
         }else if(cmd.contains("M3")){
             if(!drawing && renderPenUD){
@@ -142,12 +155,9 @@ void VPlotterRenderer::onSimulationTimerOverflow(){
         }else if(cmd.contains("G91")){
             absolutePositioning = false;
         }
-        // Very ugly :/
-        else
-            continue;
-        break;
 
-    }while(cmdIdx < cmds.length());
+    }while(cmdIdx < cmds.length() && (!animate || !anythingDrawn));
+
     imgItemSimulation->setPixmap(pxMap);
 
     if(cmdIdx >= cmds.length()){
