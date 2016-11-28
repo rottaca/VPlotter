@@ -8,7 +8,7 @@
 QStringList ConvertImageAlgorithms::convertLines(QImage &img, int angle, int threshold, int sampling
                                                  , QMatrix3x3 l2wTrans){
     QStringList cmds;
-    cmds.append(PEN_UP);
+    cmds.append(GCODE_PEN_UP);
 
     int w = img.width();
     int h = img.height();
@@ -47,17 +47,17 @@ QStringList ConvertImageAlgorithms::convertLines(QImage &img, int angle, int thr
                 if(c > threshold){
                     if(!drawing){
                         QVector2D worldPos = convertLocalToWorld(posCurr,l2wTrans);
-                        lineCmds.append(SPEED_DIV(1));
-                        lineCmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
-                        lineCmds.append(PEN_DOWN);
-                        lineCmds.append(SPEED_DIV(5));
+                        lineCmds.append(GCODE_SPEED_MOVE);
+                        lineCmds.append(GCODE_MOVE_TO(worldPos.x(),worldPos.y()));
+                        lineCmds.append(GCODE_PEN_DOWN);
+                        lineCmds.append(GCODE_SPEED_DRAW);
                         drawing = true;
                     }
                 }else{
                     if(drawing){
                         QVector2D worldPos = convertLocalToWorld(posCurr-QVector2D(dirX,dirY),l2wTrans);
-                        lineCmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
-                        lineCmds.append(PEN_UP);
+                        lineCmds.append(GCODE_MOVE_TO(worldPos.x(),worldPos.y()));
+                        lineCmds.append(GCODE_PEN_UP);
                         drawing = false;
                     }
                 }
@@ -72,7 +72,7 @@ QStringList ConvertImageAlgorithms::convertLines(QImage &img, int angle, int thr
 
             if(drawing){
                 QVector2D worldPos = convertLocalToWorld(posCurr-QVector2D(dirX,dirY),l2wTrans);
-                lineCmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
+                lineCmds.append(GCODE_MOVE_TO(worldPos.x(),worldPos.y()));
                 drawing = false;
             }
             // No line drawn?
@@ -82,8 +82,8 @@ QStringList ConvertImageAlgorithms::convertLines(QImage &img, int angle, int thr
             // Invert commands for every second line to avoid unnecessary movements
             if((x/sampling) % 2 == 1)
                 std::reverse(lineCmds.begin(),lineCmds.end());
-            cmds.append(";next line");
-            cmds.append(PEN_UP);
+            //cmds.append(";next line");
+            cmds.append(GCODE_PEN_UP);
             for(int i = 0; i < lineCmds.size(); i++)
                 cmds.append(lineCmds.at(i));
 
@@ -119,17 +119,17 @@ QStringList ConvertImageAlgorithms::convertLines(QImage &img, int angle, int thr
                 if(c > threshold){
                     if(!drawing){
                         QVector2D worldPos = convertLocalToWorld(posCurr,l2wTrans);
-                        lineCmds.append(PEN_UP);
-                        lineCmds.append(SPEED_DIV(1));
-                        lineCmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
-                        lineCmds.append(PEN_DOWN);
-                        lineCmds.append(SPEED_DIV(5));
+                        lineCmds.append(GCODE_PEN_UP);
+                        lineCmds.append(GCODE_SPEED_MOVE);
+                        lineCmds.append(GCODE_MOVE_TO(worldPos.x(),worldPos.y()));
+                        lineCmds.append(GCODE_PEN_DOWN);
+                        lineCmds.append(GCODE_SPEED_DRAW);
                         drawing = true;
                     }
                 }else{
                     if(drawing){
                         QVector2D worldPos = convertLocalToWorld(posCurr,l2wTrans);
-                        lineCmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
+                        lineCmds.append(GCODE_MOVE_TO(worldPos.x(),worldPos.y()));
                         drawing = false;
                     }
                 }
@@ -144,7 +144,7 @@ QStringList ConvertImageAlgorithms::convertLines(QImage &img, int angle, int thr
 
             if(drawing){
                 QVector2D worldPos = convertLocalToWorld(posCurr-QVector2D(dirX,dirY),l2wTrans);
-                lineCmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
+                lineCmds.append(GCODE_MOVE_TO(worldPos.x(),worldPos.y()));
                 drawing = false;
             }
 
@@ -157,7 +157,7 @@ QStringList ConvertImageAlgorithms::convertLines(QImage &img, int angle, int thr
                 std::reverse(lineCmds.begin(),lineCmds.end());
 
             //cmds.append(";next line");
-            cmds.append(PEN_UP);
+            cmds.append(GCODE_PEN_UP);
             for(int i = 0; i < lineCmds.size(); i++)
                 cmds.append(lineCmds.at(i));
         }
@@ -234,28 +234,30 @@ QStringList ConvertImageAlgorithms::convertWave(QImage img, float ySampling, int
     QStringList cmds;
     for(int y = 0; y < img.height(); y= qRound(y+ySampling)){
         QVector2D worldPos = convertLocalToWorld(QVector2D(0,y),l2wTrans);
-        cmds.append(SPEED_DIV(1));
-        cmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
-        cmds.append(PEN_DOWN);
-        cmds.append(SPEED_DIV(5));
+        cmds.append(GCODE_SPEED_DIV(1));
+        cmds.append(GCODE_MOVE_TO(worldPos.x(),worldPos.y()));
+        cmds.append(GCODE_PEN_DOWN);
+        cmds.append(GCODE_SPEED_DIV(5));
         uchar* imgPtr = img.scanLine(y);
 
         float x = 0;
+        // TODO flip direction every second row to remove unnecessary movements.
         while(x < img.width()){
             uchar c = imgPtr[qRound(x)];
 
             float width = (float)c/255*xSampling+2;
             QVector2D worldPos = convertLocalToWorld(QVector2D(x,y),l2wTrans);
-            cmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
+            cmds.append(GCODE_MOVE_TO(worldPos.x(),worldPos.y()));
             worldPos = convertLocalToWorld(QVector2D(x+width/2,y),l2wTrans);
-            cmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
+            cmds.append(GCODE_MOVE_TO(worldPos.x(),worldPos.y()));
             worldPos = convertLocalToWorld(QVector2D(x+width/2,y+ySampling-1),l2wTrans);
-            cmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
+            cmds.append(GCODE_MOVE_TO(worldPos.x(),worldPos.y()));
             worldPos = convertLocalToWorld(QVector2D(x+width,y+ySampling-1),l2wTrans);
-            cmds.append(MOVE_TO(worldPos.x(),worldPos.y()));
+            cmds.append(GCODE_MOVE_TO(worldPos.x(),worldPos.y()));
+
             x+=width;
         }
-        cmds.append(PEN_UP);
+        cmds.append(GCODE_PEN_UP);
     }
     return cmds;
 }
@@ -302,20 +304,20 @@ QStringList ConvertImageAlgorithms::createSquare(QVector2D center, float size, Q
     QVector2D lu(center - QVector2D(size/2,size/2));
     QStringList cmds;
     QVector2D tmp = convertLocalToWorld(lu,l2wTrans);
-    cmds.append(SPEED_DIV(1));
-    cmds.append(MOVE_TO(tmp.x(),tmp.y()));
+    cmds.append(GCODE_SPEED_MOVE);
+    cmds.append(GCODE_MOVE_TO(tmp.x(),tmp.y()));
 
-    cmds.append(PEN_DOWN);
-    cmds.append(SPEED_DIV(5));
+    cmds.append(GCODE_PEN_DOWN);
+    cmds.append(GCODE_SPEED_DRAW);
     tmp = convertLocalToWorld(lu+QVector2D(0,1)*size,l2wTrans);
-    cmds.append(MOVE_TO(tmp.x(),tmp.y()));
+    cmds.append(GCODE_MOVE_TO(tmp.x(),tmp.y()));
     tmp = convertLocalToWorld(lu+QVector2D(1,1)*size,l2wTrans);
-    cmds.append(MOVE_TO(tmp.x(),tmp.y()));
+    cmds.append(GCODE_MOVE_TO(tmp.x(),tmp.y()));
     tmp = convertLocalToWorld(lu+QVector2D(1,0)*size,l2wTrans);
-    cmds.append(MOVE_TO(tmp.x(),tmp.y()));
+    cmds.append(GCODE_MOVE_TO(tmp.x(),tmp.y()));
     tmp = convertLocalToWorld(lu+QVector2D(0,0)*size,l2wTrans);
-    cmds.append(MOVE_TO(tmp.x(),tmp.y()));
-    cmds.append(PEN_UP);
+    cmds.append(GCODE_MOVE_TO(tmp.x(),tmp.y()));
+    cmds.append(GCODE_PEN_UP);
     return cmds;
 
 }
@@ -324,18 +326,18 @@ QStringList ConvertImageAlgorithms::createCross(QVector2D center, float size, QM
     QVector2D lu(center - QVector2D(size/2,size/2));
     QStringList cmds;
     QVector2D tmp = convertLocalToWorld(lu+QVector2D(0.5,0)*size,l2wTrans);
-    cmds.append(MOVE_TO(tmp.x(),tmp.y()));
+    cmds.append(GCODE_MOVE_TO(tmp.x(),tmp.y()));
 
-    cmds.append(PEN_DOWN);
+    cmds.append(GCODE_PEN_DOWN);
     tmp = convertLocalToWorld(lu+QVector2D(0.5,1)*size,l2wTrans);
-    cmds.append(MOVE_TO(tmp.x(),tmp.y()));
-    cmds.append(PEN_UP);
+    cmds.append(GCODE_MOVE_TO(tmp.x(),tmp.y()));
+    cmds.append(GCODE_PEN_UP);
     tmp = convertLocalToWorld(lu+QVector2D(0,0.5)*size,l2wTrans);
-    cmds.append(MOVE_TO(tmp.x(),tmp.y()));
-    cmds.append(PEN_DOWN);
+    cmds.append(GCODE_MOVE_TO(tmp.x(),tmp.y()));
+    cmds.append(GCODE_PEN_DOWN);
     tmp = convertLocalToWorld(lu+QVector2D(1,0.5)*size,l2wTrans);
-    cmds.append(MOVE_TO(tmp.x(),tmp.y()));
-    cmds.append(PEN_UP);
+    cmds.append(GCODE_MOVE_TO(tmp.x(),tmp.y()));
+    cmds.append(GCODE_PEN_UP);
     return cmds;
 }
 

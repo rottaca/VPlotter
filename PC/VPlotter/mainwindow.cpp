@@ -284,37 +284,37 @@ void MainWindow::onClickLeftDown(){}
 void MainWindow::onClickRightUp(){}
 void MainWindow::onClickRightDown(){}
 void MainWindow::onClickMoveUp(){
-    sendCmd(USE_RELATIVE_POS.append("\n"));
-    sendCmd(MOVE_Y(-ui->sb_move_dist->value()).append("\n"));
-    sendCmd(USE_ABSOLUTE_POS.append("\n"));
+    sendCmd(GCODE_USE_RELATIVE_POS.append("\n"));
+    sendCmd(GCODE_MOVE_Y(-ui->sb_move_dist->value()).append("\n"));
+    sendCmd(GCODE_USE_ABSOLUTE_POS.append("\n"));
 }
 void MainWindow::onClickMoveLeft(){
-    sendCmd(USE_RELATIVE_POS.append("\n"));
-    sendCmd(MOVE_X(-ui->sb_move_dist->value()).append("\n"));
-    sendCmd(USE_ABSOLUTE_POS.append("\n"));
+    sendCmd(GCODE_USE_RELATIVE_POS.append("\n"));
+    sendCmd(GCODE_MOVE_X(-ui->sb_move_dist->value()).append("\n"));
+    sendCmd(GCODE_USE_ABSOLUTE_POS.append("\n"));
 }
 void MainWindow::onClickMoveRight(){
-    sendCmd(USE_RELATIVE_POS.append("\n"));
-    sendCmd(MOVE_X(ui->sb_move_dist->value()).append("\n"));
-    sendCmd(USE_ABSOLUTE_POS.append("\n"));
+    sendCmd(GCODE_USE_RELATIVE_POS.append("\n"));
+    sendCmd(GCODE_MOVE_X(ui->sb_move_dist->value()).append("\n"));
+    sendCmd(GCODE_USE_ABSOLUTE_POS.append("\n"));
 }
 void MainWindow::onClickMoveDown(){
-    sendCmd(USE_RELATIVE_POS.append("\n"));
-    sendCmd(MOVE_Y(ui->sb_move_dist->value()).append("\n"));
-    sendCmd(USE_ABSOLUTE_POS);
+    sendCmd(GCODE_USE_RELATIVE_POS.append("\n"));
+    sendCmd(GCODE_MOVE_Y(ui->sb_move_dist->value()).append("\n"));
+    sendCmd(GCODE_USE_ABSOLUTE_POS);
 }
 void MainWindow::onClickPenUpDown(){
     if(ui->b_pen_updown->text().compare("Pen Down")==0){
-        sendCmd(PEN_DOWN.append("\n"));
+        sendCmd(GCODE_PEN_DOWN.append("\n"));
         ui->b_pen_updown->setText("Pen Up");
     }else{
-        sendCmd(PEN_UP.append("\n"));
+        sendCmd(GCODE_PEN_UP.append("\n"));
         ui->b_pen_updown->setText("Pen Down");
     }
 }
 void MainWindow::onClickSetSpeed(){
     float speed = ui->sb_speed->value();
-    sendCmd(SPEED_DIV(speed).append("\n"));
+    sendCmd(GCODE_SPEED_DIV(speed).append("\n"));
 }
 void MainWindow::onCmdExecFinished(){
     ui->b_execute->setText("Execute");
@@ -342,14 +342,14 @@ void MainWindow::onClickCalibrate()
     float h = ui->sb_calib_height->value();
     float l = ui->sb_calib_left->value();
     float r = ui->sb_calib_right->value();
-    sendCmd(CALIBRATE(b,l,r).append("\n"));
+    sendCmd(GCODE_CALIBRATE(b,l,r).append("\n"));
 
     ui->vp_plotterRenderer->setPlotterSize(b,h);
     ui->sb_pos_x->setMaximum(b);
     ui->sb_pos_y->setMaximum(h);
 }
 void MainWindow::onPollPosition(){
-    sendCmd(GET_POSITION.append("\n"));
+    sendCmd(GCODE_GET_POSITION.append("\n"));
     QByteArray data = serialPort.readLine();
     QString strData(data);
     QStringList list = strData.split(" ");
@@ -420,23 +420,23 @@ void MainWindow::onCommandEditorChanged()
 void MainWindow::onClickGenerateBoundingBox()
 {
     QStringList cmds;
-    cmds.append(PEN_UP);
-    cmds.append(MOVE_TO_AND_SPEED(ui->sb_pos_x->value(),ui->sb_pos_y->value(),1));
-    cmds.append(PEN_DOWN);
-    cmds.append(USE_RELATIVE_POS);
-    cmds.append(SPEED_DIV(5));
-    cmds.append(MOVE_X(ui->sb_scale->value()*currentImage.width()));
-    cmds.append(MOVE_Y(ui->sb_scale->value()*currentImage.height()));
-    cmds.append(MOVE_X(-ui->sb_scale->value()*currentImage.width()));
-    cmds.append(MOVE_Y(-ui->sb_scale->value()*currentImage.height()));
-    cmds.append(USE_ABSOLUTE_POS);
-    cmds.append(PEN_UP);
+    cmds.append(GCODE_PEN_UP);
+    cmds.append(GCODE_MOVE_TO_AND_SPEED(ui->sb_pos_x->value(),ui->sb_pos_y->value(),1));
+    cmds.append(GCODE_PEN_DOWN);
+    cmds.append(GCODE_USE_RELATIVE_POS);
+    cmds.append(GCODE_SPEED_DRAW);
+    cmds.append(GCODE_MOVE_X(ui->sb_scale->value()*currentImage.width()));
+    cmds.append(GCODE_MOVE_Y(ui->sb_scale->value()*currentImage.height()));
+    cmds.append(GCODE_MOVE_X(-ui->sb_scale->value()*currentImage.width()));
+    cmds.append(GCODE_MOVE_Y(-ui->sb_scale->value()*currentImage.height()));
+    cmds.append(GCODE_USE_ABSOLUTE_POS);
+    cmds.append(GCODE_PEN_UP);
     setCommandList(cmds,true);
 }
 
 void MainWindow::onClickHome()
 {
-    sendCmd(PEN_UP.append("\n"));
-    sendCmd(SPEED_DIV(1).append("\n"));
+    sendCmd(GCODE_PEN_UP.append("\n"));
+    sendCmd(GCODE_SPEED_DRAW.append("\n"));
     sendCmd(GCODE_HOME.append("\n"));
 }

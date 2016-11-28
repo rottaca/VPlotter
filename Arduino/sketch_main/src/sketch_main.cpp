@@ -165,6 +165,7 @@ bool executeGCode(int code, char** params) {
     SEND_ERROR(ERROR_UNKNOWN_CODE);
     return false;
   }
+  return true;
 }
 void executeMCode(int code, char** params) {
   switch (code) {

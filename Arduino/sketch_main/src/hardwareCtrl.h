@@ -117,6 +117,7 @@ bool hw_ctrl_set_speed_devider(uint8_t div){
     return false;
 
   hw_state.loops_to_skip = CLAMP(div,1,255);
+  return true;
 }
 
 bool hw_ctrl_set_drawing(bool drawing)
@@ -182,10 +183,10 @@ void hw_ctrl_execute_motion(float x, float y) {
   // Optimized and faster bresenham line algorithm
   // Source:http://members.chello.at/easyfilter/bresenham.html
   hw_state.dSteps[STP_LEFT] = abs(hw_state.motor_pos_target[STP_LEFT] - hw_state.motor_pos[STP_LEFT]);
-  hw_state.dSteps[STP_RIGHT] = abs(hw_state.motor_pos_target[STP_RIGHT] - hw_state.motor_pos[STP_RIGHT]);
+  hw_state.dSteps[STP_RIGHT] = -abs(hw_state.motor_pos_target[STP_RIGHT] - hw_state.motor_pos[STP_RIGHT]);
   hw_state.s[STP_LEFT]  = hw_state.motor_pos_target[STP_LEFT] > hw_state.motor_pos[STP_LEFT]?1:-1;
   hw_state.s[STP_RIGHT]  = hw_state.motor_pos_target[STP_RIGHT] > hw_state.motor_pos[STP_RIGHT]?1:-1;
-  hw_state.err = hw_state.dSteps[STP_LEFT]-hw_state.dSteps[STP_RIGHT];
+  hw_state.err = hw_state.dSteps[STP_LEFT]+hw_state.dSteps[STP_RIGHT];
 
   // Set direction
   digitalWrite(PIN_DIR_RIGHT,(hw_state.s[STP_RIGHT]*INVERT_STEPPER_RIGHT)>0?1:0);
@@ -197,15 +198,14 @@ void hw_ctrl_execute_motion(float x, float y) {
 
 void hw_ctrl_timer_callback() {
 
-      // 128 us per timer overflow
-      hw_state.us_since_servo_period += TIMER1_US_PER_INTERRUPT;
+    hw_state.us_since_servo_period += TIMER1_US_PER_INTERRUPT;
 
-      if (hw_state.us_since_servo_period >= SERVO_US_FULL_PHASE) {
-        hw_state.us_since_servo_period = 0;
-        digitalWrite(PIN_SERVO, 1);
-      } else if (hw_state.us_since_servo_period > hw_state.servo_signal_length_us) {
-        digitalWrite(PIN_SERVO, 0);
-      }
+    if (hw_state.us_since_servo_period >= SERVO_US_FULL_PHASE) {
+      hw_state.us_since_servo_period = 0;
+      digitalWrite(PIN_SERVO, 1);
+    } else if (hw_state.us_since_servo_period > hw_state.servo_signal_length_us) {
+      digitalWrite(PIN_SERVO, 0);
+    }
 
   switch (hw_state.state) {
     case MOVING:
@@ -228,12 +228,12 @@ void hw_ctrl_timer_callback() {
         // Optimized and faster bresenham line algorithm
         // Source:http://members.chello.at/easyfilter/bresenham.html
         int32_t e2 = 2*hw_state.err;
-        if(e2 >= -hw_state.dSteps[STP_RIGHT]){
-          hw_state.err -= hw_state.dSteps[STP_RIGHT];
+        if(e2 > hw_state.dSteps[STP_RIGHT]){
+          hw_state.err += hw_state.dSteps[STP_RIGHT];
           digitalWrite(PIN_STEP_LEFT, 1);
           hw_state.motor_pos[STP_LEFT] += hw_state.s[STP_LEFT];
         }
-        if(e2 <= hw_state.dSteps[STP_LEFT]){
+        if(e2 < hw_state.dSteps[STP_LEFT]){
           hw_state.err += hw_state.dSteps[STP_LEFT];
           digitalWrite(PIN_STEP_RIGHT, 1);
           hw_state.motor_pos[STP_RIGHT] += hw_state.s[STP_RIGHT];
