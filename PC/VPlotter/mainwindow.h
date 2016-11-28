@@ -41,7 +41,7 @@ public slots:
     void onClickSetSpeed();
     void onChangeImgBounds();
     void onTimerReadSerial();
-    void onClickCalibrate();
+    void onClickSetHome();
     void onPollPosition();
     void onClickOpenCmdFile();
     void onClickExecuteCmdFile();

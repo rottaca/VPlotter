@@ -26,7 +26,7 @@
 // Speed of timer1, used for servo positioning and stepper control
 #define TIMER1_US_PER_INTERRUPT 50
 // Speed devider to slowdown movements
-#define SPEED_DIVIDER 1
+#define DEFAULT_SPEED_DIVIDER 5
 
 // Invert stepper direction
 #define INVERT_STEPPER_LEFT -1
@@ -40,15 +40,15 @@
 #define PIN_SERVO 9
 #define PIN_LED 13
 
-// Valid drawing area, Movements are clamped to this area
+// Devin Plotter geometry
+#define BASE_WIDTH 870.0f
 #define X_MIN 10
 #define X_MAX 800
 #define Y_MIN 10
 #define Y_MAX 1200
-
 // Defines the home position
-#define HOME_POS_X 300
-#define HOME_POS_Y 300
+#define HOME_POS_X 435
+#define HOME_POS_Y 225
 
 // Servo setup
 #define SERVO_US_FULL_PHASE 20000   // 20ms

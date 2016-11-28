@@ -28,7 +28,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->b_move_left, SIGNAL (clicked()), this, SLOT (onClickMoveLeft()));
     connect(ui->b_move_right, SIGNAL (clicked()), this, SLOT (onClickMoveRight()));
     connect(ui->b_move_up, SIGNAL (clicked()), this, SLOT (onClickMoveUp()));
-    connect(ui->b_calib, SIGNAL (clicked()), this, SLOT (onClickCalibrate()));
+    connect(ui->b_set_home, SIGNAL (clicked()), this, SLOT (onClickSetHome()));
     connect(ui->b_set_speed, SIGNAL (clicked()), this, SLOT (onClickSetSpeed()));
     connect(ui->b_execute,SIGNAL(clicked()),this,SLOT(onClickExecuteCmdFile()));
     connect(&serialPort, SIGNAL(readyRead()), this, SLOT(onTimerReadSerial()));
@@ -60,11 +60,10 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this,SIGNAL(onSerialAnswerRecieved(QString)),cmdListExec,SLOT(onRecieveAnswer(QString)));
     connect(this,SIGNAL(onExecCmdList(QStringList)),cmdListExec,SLOT(executeCmdList(QStringList)));
 
-    float b = ui->sb_calib_base->value();
-    float h = ui->sb_calib_height->value();
-    ui->vp_plotterRenderer->setPlotterSize(b,h);
-    ui->sb_pos_x->setMaximum(b);
-    ui->sb_pos_y->setMaximum(h);
+
+    ui->vp_plotterRenderer->setPlotterSize(870,1200);
+    ui->sb_pos_x->setMaximum(870);
+    ui->sb_pos_y->setMaximum(1200);
 
     onChangeRenderOptions();
 
@@ -201,7 +200,6 @@ void MainWindow::onClickConnect()
         ui->le_portName->setEnabled(true);
         ui->b_connect->setText("Connect");
         ui->le_command->setEnabled(false);
-        ui->gb_calibration->setEnabled(false);
         ui->gb_manual->setEnabled(false);
         ui->b_execute->setEnabled(false);
         timer->stop();
@@ -218,7 +216,6 @@ void MainWindow::onClickConnect()
         ui->le_portName->setEnabled(false);
         ui->b_connect->setText("Disconnect");
         ui->le_command->setEnabled(true);
-        ui->gb_calibration->setEnabled(true);
         ui->gb_manual->setEnabled(true);
         ui->b_execute->setEnabled(true);
         ui->te_output->clear();
@@ -336,17 +333,9 @@ void MainWindow::sendCmd(QString msg){
         printStatus(QString("Failed to write all data (only %1 of %2 bytes)").arg(sz).arg(msg.length()),true);
     }
 }
-void MainWindow::onClickCalibrate()
+void MainWindow::onClickSetHome()
 {
-    float b = ui->sb_calib_base->value();
-    float h = ui->sb_calib_height->value();
-    float l = ui->sb_calib_left->value();
-    float r = ui->sb_calib_right->value();
-    sendCmd(GCODE_CALIBRATE(b,l,r).append("\n"));
-
-    ui->vp_plotterRenderer->setPlotterSize(b,h);
-    ui->sb_pos_x->setMaximum(b);
-    ui->sb_pos_y->setMaximum(h);
+    sendCmd(GCODE_SET_HOME.append("\n"));
 }
 void MainWindow::onPollPosition(){
     sendCmd(GCODE_GET_POSITION.append("\n"));

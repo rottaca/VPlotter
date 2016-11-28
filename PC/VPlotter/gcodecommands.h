@@ -1,7 +1,8 @@
 #ifndef GCODECOMMANDS
 #define GCODECOMMANDS
 
-#define GCODE_CALIBRATE(B,L,R) QString("M5 B%1 L%2 R%3").arg(B).arg(L).arg(R)
+#define GCODE_SET_HOME QString("M5")
+#define GCODE_HOME QString("G28")
 #define GCODE_SPEED_DIV(F) QString("G0 F%1").arg(F)
 #define GCODE_MOVE_TO_AND_SPEED(X,Y,F) QString("G0 X%1 Y%2 F%3").arg(X).arg(Y).arg(F)
 #define GCODE_MOVE_TO(X,Y) QString("G0 X%1 Y%2").arg(X).arg(Y)
@@ -13,9 +14,8 @@
 #define GCODE_GET_POSITION QString("M8")
 #define GCODE_USE_ABSOLUTE_POS QString("G90")
 #define GCODE_USE_RELATIVE_POS QString("G91")
-#define GCODE_HOME QString("G28")
 
-#define GCODE_SPEED_MOVE GCODE_SPEED_DIV(1)
+#define GCODE_SPEED_MOVE GCODE_SPEED_DIV(3)
 #define GCODE_SPEED_DRAW GCODE_SPEED_DIV(8)
 
 

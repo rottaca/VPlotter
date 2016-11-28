@@ -197,36 +197,8 @@ void executeMCode(int code, char** params) {
 
 // CALIBRATE
 boolean executeM5(char** params){
-  // Calibrate origin
-  if (params[0][0] != 'B' ||
-    params[1][0] != 'L' ||
-    params[2][0] != 'R') {
-    SEND_ERROR(ERROR_INVALID_PARAM);
-    return false;
-  }
-  float base;
-  float l1, l2;
-  char* errCheck;
-  base = strtod(&params[0][1], &errCheck);
-  if (&params[0][1] == errCheck)
-  {
-    SEND_ERROR(ERROR_INVALID_PARAM);
-    return false;
-  }
-  l1 = strtod(&params[1][1], &errCheck);
-  if (&params[1][1] == errCheck)
-  {
-    SEND_ERROR(ERROR_INVALID_PARAM);
-    return false;
-  }
-  l2 = strtod(&params[2][1], &errCheck);
-  if (&params[2][1] == errCheck)
-  {
-    SEND_ERROR(ERROR_INVALID_PARAM);
-    return false;
-  }
 
-  if(hw_ctrl_calibrate(base, l1, l2))
+  if(hw_ctrl_set_home())
     SEND_NOERROR;
   else
     SEND_ERROR(ERROR_CALIB_FAILED);
@@ -326,7 +298,7 @@ if(positionChanged)
 void executeM7()
 {
     Serial.println("State: " + String(hw_state.state));
-    Serial.println("Base: " + String((int)hw_state.base));
+    Serial.println("Base: " + String((int)BASE_WIDTH));
     float x,y;
     hw_ctrl_convert_length_to_point(STEPS_TO_LENGTH(hw_state.motor_pos[STP_LEFT]),
       STEPS_TO_LENGTH(hw_state.motor_pos[STP_RIGHT]),&x, &y);

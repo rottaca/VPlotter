@@ -23,9 +23,6 @@ struct hardware_state_t
   // State of the hardware state machine
   state_t state;
 
-  // Baselength between both stepper motors
-  float base;
-
   // Variables for bresenham
   int32_t err;
   int32_t s[STP_CNT];
@@ -56,7 +53,7 @@ void hw_ctrl_move_to(float x, float y);
 void hw_ctrl_add(float x, float y);
 void hw_ctrl_set_speed(uint32_t s);
 bool hw_ctrl_set_drawing(bool drawing);
-bool hw_ctrl_calibrate(float base, float lengthL, float lengthR);
+bool hw_ctrl_set_home();
 void hw_ctrl_timer_callback();
 void hw_ctrl_convert_length_to_point(float L, float R, float* x, float* y);
 void hw_ctrl_convert_point_to_length(float x, float y, float*L, float*R);
@@ -74,14 +71,13 @@ void hw_ctrl_init()
     hw_state.s[i] = 0;
   }
 
-  hw_state.base = 0;
   hw_state.err = 0;
   hw_state.us_since_servo_period = 0;
-  hw_state.servo_signal_length_us = SERVO_US_PEN_UP;
+  hw_state.servo_signal_length_us = SERVO_US_PEN_DOWN;
   hw_state.servo_move_delay = 0;
   hw_state.state = START;
   hw_state.skipped_loops = 0;
-  hw_state.loops_to_skip = SPEED_DIVIDER;
+  hw_state.loops_to_skip = DEFAULT_SPEED_DIVIDER;
 
   // Initialize hardware
   pinMode(PIN_DIR_LEFT, OUTPUT);
@@ -96,9 +92,13 @@ void hw_ctrl_init()
   Timer1.initialize(TIMER1_US_PER_INTERRUPT);
   Timer1.attachInterrupt(hw_ctrl_timer_callback);
 
-  delay(500);
+  for (size_t i = 0; i < 10; i++) {
+    digitalWrite(PIN_LED, digitalRead(PIN_LED));
+    delay(100);
+  }
+
   // test stepper moves
-  for (size_t dir = 0; dir < 2; dir++) {
+  /*for (size_t dir = 0; dir < 2; dir++) {
     digitalWrite(PIN_DIR_LEFT, INVERT_STEPPER_LEFT==1?dir:1-dir);
     digitalWrite(PIN_DIR_RIGHT, INVERT_STEPPER_RIGHT==1?dir:1-dir);
 
@@ -109,7 +109,7 @@ void hw_ctrl_init()
       digitalWrite(PIN_STEP_LEFT, 0);
       digitalWrite(PIN_STEP_RIGHT, 0);
     }
-  }
+  }*/
 }
 
 bool hw_ctrl_set_speed_devider(uint8_t div){
@@ -136,33 +136,25 @@ bool hw_ctrl_set_drawing(bool drawing)
   return true;
 }
 
-bool hw_ctrl_calibrate(float base, float lengthL, float lengthR)
+bool hw_ctrl_set_home()
 {
   if(hw_state.state != IDLE && hw_state.state != START)
     return false;
 
   hw_state.state = START;
 
-  if(base > lengthL+lengthR)
-  {
-    //Serial.println("Calibration failed. Invalid length's.");
-    return false;
-  }
+  float L,R;
+  hw_ctrl_convert_point_to_length(HOME_POS_X,HOME_POS_Y,&L,&R);
+  char tmp[10];
+  dtostrf(L, 10, 2, tmp);
+  Serial.println(tmp);
+  dtostrf(R, 10, 2, tmp);
+  Serial.println(tmp);
 
-  hw_state.base = base;
-  float x = (base * base + lengthL * lengthL - lengthR * lengthR) / (2 * base);
-  float y = sqrt(lengthR * lengthR - (base - x) * (base - x));
-
-  if(x < X_MIN || x > X_MAX ||
-     y < Y_MIN || y > Y_MAX)
-  {
-    return false;
-  }
-
-  hw_state.motor_pos[STP_LEFT] = LENGTH_TO_STEPS(lengthL);
-  hw_state.motor_pos[STP_RIGHT] = LENGTH_TO_STEPS(lengthR);
-  hw_state.motor_pos_target[STP_LEFT] = LENGTH_TO_STEPS(lengthL);
-  hw_state.motor_pos_target[STP_RIGHT] = LENGTH_TO_STEPS(lengthR);
+  hw_state.motor_pos[STP_LEFT] = LENGTH_TO_STEPS(L);
+  hw_state.motor_pos[STP_RIGHT] = LENGTH_TO_STEPS(R);
+  hw_state.motor_pos_target[STP_LEFT] = hw_state.motor_pos[STP_LEFT];
+  hw_state.motor_pos_target[STP_RIGHT] =hw_state.motor_pos[STP_RIGHT];
   hw_state.state = IDLE;
   return true;
 }
@@ -264,27 +256,13 @@ inline bool hw_ctrl_is_calibrated()
 }
 
 void hw_ctrl_convert_length_to_point(float L, float R, float* x, float* y){
-
-  if(hw_state.state == START)
-  {
-        *x = NAN;
-        *y = NAN;
-        return;
-  }
-  *x = (hw_state.base * hw_state.base + L * L - R * R) / (2 * hw_state.base);
-  *y = sqrt(R * R - (hw_state.base - *x) * (hw_state.base - *x));
+  *x = (BASE_WIDTH * BASE_WIDTH + L * L - R * R) / (2 * BASE_WIDTH);
+  *y = sqrt(R * R - (BASE_WIDTH - *x) * (BASE_WIDTH - *x));
 }
 
 void hw_ctrl_convert_point_to_length(float x, float y, float* L, float* R){
-
-  if(hw_state.state == START)
-  {
-        *L = NAN;
-        *R = NAN;
-        return;
-  }
   *L = sqrt(x * x + y * y);
-  *R = sqrt((hw_state.base - x) * (hw_state.base - x) + y * y);
+  *R = sqrt((BASE_WIDTH - x) * (BASE_WIDTH - x) + y * y);
 }
 
 
