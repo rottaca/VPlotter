@@ -28,6 +28,7 @@ void CommandListExecutor::executeCmdList(QStringList cmds)
     qDebug(cmdList.at(currCmdIdx).toLocal8Bit());
     // Send first command and wait for answer
     sendCmd(cmdList.at(currCmdIdx++));
+    emit onChangeProgress((float)currCmdIdx/cmdList.size());
 }
 
 
@@ -62,6 +63,7 @@ void CommandListExecutor::onRecieveAnswer(QString answ)
             }else{
                 //qDebug((QString("Send Next: ") + cmd.toLocal8Bit()).toLocal8Bit());
                 sendCmd(cmd);
+                emit onChangeProgress((float)currCmdIdx/cmdList.size());
             }
         }
         else{

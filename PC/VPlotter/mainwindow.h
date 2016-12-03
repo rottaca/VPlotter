@@ -55,7 +55,7 @@ public slots:
     void onClickGenerateBoundingBox();
     void onClickHome();
     void onCommandEditorChanged();
-
+    void onChangeProgress(float p);
 signals:
     void onSerialAnswerRecieved(QString);
     void onStopCmdExec();
@@ -68,6 +68,7 @@ private:
     QTimer* timer;
     CommandListExecutor* cmdListExec;
     ConvertForm* convertForm;
+    QTime executionTimeStart;
 
 };
 

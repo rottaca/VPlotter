@@ -158,6 +158,7 @@ void VPlotterRenderer::onSimulationTimerOverflow(){
 
     }while(cmdIdx < cmds.length() && (!animate || !anythingDrawn));
 
+    emit onChangeProgress((float)cmdIdx/cmds.size());
     imgItemSimulation->setPixmap(pxMap);
 
     if(cmdIdx >= cmds.length()){

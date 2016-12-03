@@ -195,6 +195,10 @@ QStringList ConvertImageAlgorithms::convertLines(QImage &img, int angle, int thr
 QStringList ConvertImageAlgorithms::convertMultiLines(QImage img, bool* drawLines, bool mapToIntensity,
                                                       int sampling, int threshold,
                                                       QMatrix3x3 l2wTrans){
+
+    if(sampling < 1)
+        sampling = 1;
+
     QStringList cmds;
 
     // blur to remove small points
@@ -231,13 +235,18 @@ QStringList ConvertImageAlgorithms::convertWave(QImage img, float ySampling, int
                                                QMatrix3x3 l2wTrans)
 {
 
+    if(ySampling < 1)
+        ySampling = 1;
+    if(xSampling < 1)
+        xSampling = 1;
+
     QStringList cmds;
     for(int y = 0; y < img.height(); y= qRound(y+ySampling)){
         QVector2D worldPos = convertLocalToWorld(QVector2D(0,y),l2wTrans);
-        cmds.append(GCODE_SPEED_DIV(1));
+        cmds.append(GCODE_SPEED_MOVE);
         cmds.append(GCODE_MOVE_TO(worldPos.x(),worldPos.y()));
         cmds.append(GCODE_PEN_DOWN);
-        cmds.append(GCODE_SPEED_DIV(5));
+        cmds.append(GCODE_SPEED_DRAW);
         uchar* imgPtr = img.scanLine(y);
 
         float x = 0;
@@ -260,6 +269,58 @@ QStringList ConvertImageAlgorithms::convertWave(QImage img, float ySampling, int
         cmds.append(GCODE_PEN_UP);
     }
     return cmds;
+}
+
+QStringList ConvertImageAlgorithms::convertPixels(QImage img, int sampling, QMatrix3x3 l2wTrans, enum InterpolationMode mode)
+{
+    QStringList cmds;
+    if(sampling < 1)
+        sampling = 1;
+    for(int y = sampling/2; y < img.height(); y+= sampling){
+        uchar* ptr = img.scanLine(y);
+        for(int x = sampling/2; x < img.width(); x+= sampling){
+            uchar v;
+            if(mode == NEAREST){
+                v = ptr[x];
+            }else{
+                v = getAverageIntensity(img,QRect(x-sampling/2,y-sampling/2,sampling,sampling));
+            }
+
+            if(v > 220)
+                continue;
+
+            float w = (float)v/255.0f*(sampling-1);
+            if(w < 0.5)
+                w = 0.5;
+
+            float x_,y_;
+            y_ = y-sampling/2.f;
+
+            for(x_ = x-sampling/2.f; x_ < x+sampling/2.f; x_+=w){
+//                cmds.append(GCODE_PEN_UP);
+//                QVector2D worldPos = convertLocalToWorld(QVector2D(x_,y_),l2wTrans);
+//                cmds.append(GCODE_MOVE_TO(worldPos.x(),worldPos.y()));
+//                cmds.append(GCODE_PEN_DOWN);
+//                worldPos = convertLocalToWorld(QVector2D(x_+w/2,y_),l2wTrans);
+//                cmds.append(GCODE_MOVE_TO(worldPos.x(),worldPos.y()));
+//                worldPos = convertLocalToWorld(QVector2D(x_+w/2,y_+sampling),l2wTrans);
+//                cmds.append(GCODE_MOVE_TO(worldPos.x(),worldPos.y()));
+//                worldPos = convertLocalToWorld(QVector2D(x_+w,y_+sampling),l2wTrans);
+//                cmds.append(GCODE_MOVE_TO(worldPos.x(),worldPos.y()));
+
+                cmds.append(GCODE_PEN_UP);
+                QVector2D worldPos = convertLocalToWorld(QVector2D(x_+w/2.f,y_),l2wTrans);
+                cmds.append(GCODE_MOVE_TO_AND_SPEED(worldPos.x(),worldPos.y(),3));
+                cmds.append(GCODE_PEN_DOWN);
+                worldPos = convertLocalToWorld(QVector2D(x_+w/2.f,y_+sampling-1),l2wTrans);
+                cmds.append(GCODE_MOVE_TO_AND_SPEED(worldPos.x(),worldPos.y(),8));
+            }
+        }
+    }
+    cmds.append(GCODE_PEN_UP);
+
+    return cmds;
+
 }
 
 QStringList ConvertImageAlgorithms::convertSquares(QImage img, int initialSize, int maxRecursion,QMatrix3x3 l2wTrans)
@@ -376,14 +437,51 @@ QMatrix3x3 ConvertImageAlgorithms::computeLocalToWorldTransform(QVector2D imgPos
 uchar ConvertImageAlgorithms::getMinimalIntensity(QImage& img,QRectF roi)
 {
     uchar min = 255;
+    if(roi.x() < 0){
+        roi.setWidth(roi.width()+roi.x());
+        roi.setX(0);
+    }
+    if(roi.y() < 0){
+        roi.setHeight(roi.height()+roi.y());
+        roi.setY(0);
+    }
+    if(roi.x()+roi.width() >= img.width())
+        roi.setWidth(img.width()-roi.x());
+    if(roi.y()+roi.height() >= img.height())
+        roi.setHeight(img.height()-roi.y());
 
-    for(int y = 0; y < roi.height();y++){
-        uchar* ptr = img.scanLine(roi.y())+qRound(roi.x());
-        for(int x = 0; x < roi.width();x++){
+    for(int y = qRound(roi.y()); y < roi.height()+roi.y();y++){
+        uchar* ptr = img.scanLine(roi.y());
+        for(int x = qRound(roi.x()); x < roi.width()+roi.x();x++){
             if(min > ptr[x])
                 min = ptr[x];
         }
     }
 
     return min;
+}
+uchar ConvertImageAlgorithms::getAverageIntensity(QImage& img,QRectF roi)
+{
+    size_t avg = 0;
+    if(roi.x() < 0){
+        roi.setWidth(roi.width()+roi.x());
+        roi.setX(0);
+    }
+    if(roi.y() < 0){
+        roi.setHeight(roi.height()+roi.y());
+        roi.setY(0);
+    }
+    if(roi.x()+roi.width() >= img.width())
+        roi.setWidth(img.width()-roi.x());
+    if(roi.y()+roi.height() >= img.height())
+        roi.setHeight(img.height()-roi.y());
+
+    for(int y = qRound(roi.y()); y < roi.height()+roi.y();y++){
+        uchar* ptr = img.scanLine(roi.y());
+        for(int x = qRound(roi.x()); x < roi.width()+roi.x();x++){
+            avg += ptr[x];
+        }
+    }
+
+    return avg/(roi.width()*roi.height());
 }

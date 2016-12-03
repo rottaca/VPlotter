@@ -140,6 +140,13 @@
               </property>
              </widget>
             </item>
+            <item row="1" column="0">
+             <widget class="QCheckBox" name="cb_binarize_invert">
+              <property name="text">
+               <string>Invert</string>
+              </property>
+             </widget>
+            </item>
             <item row="1" column="1">
              <widget class="QLabel" name="label_20">
               <property name="text">
@@ -147,13 +154,6 @@
               </property>
               <property name="alignment">
                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QCheckBox" name="cb_binarize_invert">
-              <property name="text">
-               <string>Invert</string>
               </property>
              </widget>
             </item>
@@ -288,6 +288,11 @@
            <string>Waves</string>
           </property>
          </item>
+         <item>
+          <property name="text">
+           <string>Pixels</string>
+          </property>
+         </item>
         </widget>
        </item>
       </layout>
@@ -313,7 +318,7 @@
            <enum>QFrame::Plain</enum>
           </property>
           <property name="currentIndex">
-           <number>2</number>
+           <number>3</number>
           </property>
           <widget class="QWidget" name="page_4">
            <layout class="QFormLayout" name="formLayout_4">
@@ -595,6 +600,60 @@
             </item>
            </layout>
           </widget>
+          <widget class="QWidget" name="page_8">
+           <layout class="QFormLayout" name="formLayout_7">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_25">
+              <property name="text">
+               <string>Sampling</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QSlider" name="hs_pixels_sampling">
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>100</number>
+              </property>
+              <property name="value">
+               <number>20</number>
+              </property>
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <layout class="QHBoxLayout" name="horizontalLayout_9">
+              <item>
+               <widget class="QLabel" name="label_23">
+                <property name="text">
+                 <string>20</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_24">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>mm</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </widget>
          </widget>
         </item>
        </layout>
@@ -624,12 +683,12 @@
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>198</x>
-     <y>176</y>
+     <x>112</x>
+     <y>95</y>
     </hint>
     <hint type="destinationlabel">
-     <x>198</x>
-     <y>115</y>
+     <x>112</x>
+     <y>86</y>
     </hint>
    </hints>
   </connection>
@@ -640,12 +699,12 @@
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>198</x>
-     <y>176</y>
+     <x>112</x>
+     <y>95</y>
     </hint>
     <hint type="destinationlabel">
-     <x>198</x>
-     <y>147</y>
+     <x>112</x>
+     <y>91</y>
     </hint>
    </hints>
   </connection>
@@ -720,12 +779,12 @@
    <slot>setNum(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>595</x>
-     <y>90</y>
+     <x>791</x>
+     <y>152</y>
     </hint>
     <hint type="destinationlabel">
-     <x>562</x>
-     <y>114</y>
+     <x>758</x>
+     <y>178</y>
     </hint>
    </hints>
   </connection>
@@ -736,12 +795,12 @@
    <slot>setNum(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>595</x>
-     <y>144</y>
+     <x>791</x>
+     <y>104</y>
     </hint>
     <hint type="destinationlabel">
-     <x>562</x>
-     <y>168</y>
+     <x>758</x>
+     <y>130</y>
     </hint>
    </hints>
   </connection>
@@ -784,12 +843,28 @@
    <slot>setNum(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>262</x>
-     <y>89</y>
+     <x>112</x>
+     <y>86</y>
     </hint>
     <hint type="destinationlabel">
-     <x>269</x>
-     <y>114</y>
+     <x>112</x>
+     <y>95</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>hs_pixels_sampling</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>label_23</receiver>
+   <slot>setNum(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>562</x>
+     <y>92</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>753</x>
+     <y>125</y>
     </hint>
    </hints>
   </connection>

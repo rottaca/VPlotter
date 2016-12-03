@@ -47,6 +47,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->b_gen_boundinBox,SIGNAL(clicked()),this,SLOT(onClickGenerateBoundingBox()));
     connect(ui->b_home,SIGNAL(clicked()),this,SLOT(onClickHome()));
     connect(ui->te_comand_script,SIGNAL(textChanged()),this,SLOT(onCommandEditorChanged()));
+    connect(ui->vp_plotterRenderer,SIGNAL(onChangeProgress(float)),this,SLOT(onChangeProgress(float)));
 
     timer = new QTimer();
     connect(timer,SIGNAL(timeout()),this,SLOT(onPollPosition()));
@@ -59,6 +60,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this,SIGNAL(onStopCmdExec()),cmdListExec,SLOT(stop()));
     connect(this,SIGNAL(onSerialAnswerRecieved(QString)),cmdListExec,SLOT(onRecieveAnswer(QString)));
     connect(this,SIGNAL(onExecCmdList(QStringList)),cmdListExec,SLOT(executeCmdList(QStringList)));
+    connect(cmdListExec,SIGNAL(onChangeProgress(float)),this,SLOT(onChangeProgress(float)));
 
 
     ui->vp_plotterRenderer->setPlotterSize(870,1200);
@@ -66,6 +68,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->sb_pos_y->setMaximum(1200);
 
     onChangeRenderOptions();
+
+    ui->te_comand_script->setContextMenuPolicy(Qt::NoContextMenu);
 
     convertForm = new ConvertForm(this);
 }
@@ -94,7 +98,10 @@ void MainWindow::printStatus(QString msg, bool error)
 }
 void MainWindow::setCommandList(QStringList cmds, bool autoSimulate)
 {
-    ui->te_comand_script->setPlainText(cmds.join("\n"));
+    QString str = cmds.join("\n");
+    setUpdatesEnabled(false);
+    ui->te_comand_script->setPlainText(str);
+    setUpdatesEnabled(true);
     onCommandEditorChanged();
     if(autoSimulate){
         ui->vp_plotterRenderer->abortSimulation();
@@ -355,6 +362,7 @@ void MainWindow::onClickExecuteCmdFile()
         QStringList cmds = ui->te_comand_script->toPlainText().split("\n");
         emit onExecCmdList(cmds);
         ui->b_execute->setText("Stop execution");
+        executionTimeStart.restart();
     }else{
         emit onStopCmdExec();
         ui->b_execute->setText("Execute");
@@ -368,6 +376,7 @@ void MainWindow::onClickSimulateCmdFile()
         ui->rb_show_simulation->setChecked(true);
         ui->vp_plotterRenderer->showItems(VPlotterRenderer::SIMULATION);
         ui->b_simulate->setText("Stop Simulation");
+        executionTimeStart.restart();
     }else{
         ui->vp_plotterRenderer->abortSimulation();
     }
@@ -421,6 +430,22 @@ void MainWindow::onClickGenerateBoundingBox()
     cmds.append(GCODE_USE_ABSOLUTE_POS);
     cmds.append(GCODE_PEN_UP);
     setCommandList(cmds,true);
+}
+void MainWindow::onChangeProgress(float p)
+{
+    ui->pb_progress->setValue(p*100);
+    int msElapsed = executionTimeStart.elapsed()/p;
+
+    int hours = msElapsed/(1000*60*60);
+    int minutes = (msElapsed-(hours*1000*60*60))/(1000*60);
+    int seconds = (msElapsed-(minutes*1000*60)-(hours*1000*60*60))/1000;
+
+    QString formattedTime = (QString("%1").arg(hours, 2, 10, QLatin1Char('0')) + ":" +
+                         QString( "%1" ).arg(minutes, 2, 10, QLatin1Char('0')) + ":" +
+                         QString( "%1" ).arg(seconds, 2, 10, QLatin1Char('0')));
+
+    ui->l_time_left->setText(formattedTime);
+
 }
 
 void MainWindow::onClickHome()

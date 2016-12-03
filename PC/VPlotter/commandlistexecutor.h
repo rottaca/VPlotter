@@ -18,6 +18,7 @@ signals:
     void onExecutionFinished();
     void onExecutionAborted();
     void onSendCommand(QString cmd);
+    void onChangeProgress(float p);
 
 public slots:
     void onRecieveAnswer(QString answ);

@@ -84,6 +84,7 @@ public slots:
 
 signals:
     void onSimulationFinished();
+    void onChangeProgress(float p);
 
 private:
     QVector2D readG0(QString g0, QVector2D currPos);

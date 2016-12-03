@@ -27,6 +27,7 @@ ConvertForm::~ConvertForm()
 
 void ConvertForm::onClickConvert()
 {
+    qDebug("Processing...");
     int algo = ui->cb_convert_algorithm->currentIndex();
     QStringList cmds;
     QMatrix3x3 l2w = ConvertImageAlgorithms::computeLocalToWorldTransform(imgPos,imgScale);
@@ -59,9 +60,17 @@ void ConvertForm::onClickConvert()
                                                          l2w);
         }
         break;
+        case 3:{
+        cmds = ConvertImageAlgorithms::convertPixels(preproImg,
+                                                         ui->hs_pixels_sampling->value()/imgScale,
+                                                         l2w,
+                                                         ConvertImageAlgorithms::LINEAR);
+        }
+        break;
         default:
             break;
     }
+    qDebug("Done.");
     mainWindow->setCommandList(cmds,true);
 }
 
