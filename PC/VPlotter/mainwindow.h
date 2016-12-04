@@ -60,6 +60,7 @@ signals:
     void onSerialAnswerRecieved(QString);
     void onStopCmdExec();
     void onExecCmdList(QStringList);
+    void syncPen(float x, float y, bool drawing);
 
 private:
     Ui::MainWindow *ui;

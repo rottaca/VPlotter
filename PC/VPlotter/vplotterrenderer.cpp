@@ -20,6 +20,7 @@ VPlotterRenderer::VPlotterRenderer(QWidget *parent):QGraphicsView(new QGraphicsS
     rawImgItem = p_scene->addPixmap(QPixmap());
     preprocessedImgItem = p_scene->addPixmap(QPixmap());
     imgItemSimulation = p_scene->addPixmap(QPixmap());
+    imgItemRealPrintHead = p_scene->addPixmap(QPixmap());
 
     setMotorPadding(60);
     renderPenUD = true;
@@ -28,6 +29,7 @@ VPlotterRenderer::VPlotterRenderer(QWidget *parent):QGraphicsView(new QGraphicsS
     animate = true;
     showItems(RAW);
     connect(&simulationTimer,SIGNAL(timeout()),this,SLOT(onSimulationTimerOverflow()));
+
 }
 
 void VPlotterRenderer::setPlotterSize(float w, float h){
@@ -182,4 +184,32 @@ QVector2D VPlotterRenderer::readG0(QString g0, QVector2D currPos)
          }
     }
     return newPos;
+}
+void VPlotterRenderer::syncPen(float x, float y, bool drawing)
+{
+    QPixmap pxMap  = QPixmap(plotterSize.x(),plotterSize.y());
+    pxMap.fill(Qt::transparent);
+
+    QPainter painter(&pxMap);
+    QPen Blue((QColor(0,0,255)),1);  // Cords
+    QPen Black((QColor(0,0,0)),1);  // Head printing
+    QPen Red((QColor(255,0,0)),1);  // Head not printing
+    painter.setPen(Blue);
+    painter.drawLine(0,0,x,y);
+    painter.drawLine(plotterSize.x(),0,x,y);
+
+    if(drawing){
+        painter.setBrush(Qt::black);
+        painter.setPen(Black);
+    }
+    else{
+        painter.setBrush(Qt::red);
+        painter.setPen(Red);
+    }
+
+    int drawCircleSize = 10;
+    painter.drawEllipse(x-drawCircleSize/2,y-drawCircleSize/2,
+                        drawCircleSize,drawCircleSize);
+
+    imgItemRealPrintHead->setPixmap(pxMap);
 }

@@ -172,7 +172,7 @@
        </sizepolicy>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab_ctrl">
        <attribute name="title">
@@ -675,7 +675,7 @@
            <item>
             <widget class="QProgressBar" name="pb_progress">
              <property name="value">
-              <number>24</number>
+              <number>0</number>
              </property>
             </widget>
            </item>
@@ -684,7 +684,7 @@
              <item>
               <widget class="QLabel" name="label_5">
                <property name="text">
-                <string>Estimated time left (H:m:s):</string>
+                <string>Estimated time left (h:m:s):</string>
                </property>
               </widget>
              </item>
@@ -692,6 +692,30 @@
               <widget class="QLabel" name="l_time_left">
                <property name="text">
                 <string/>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_8">
+             <item>
+              <widget class="QLabel" name="label_6">
+               <property name="text">
+                <string>Estimated end time (h:m):</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="l_end_time">
+               <property name="text">
+                <string/>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                </property>
               </widget>
              </item>

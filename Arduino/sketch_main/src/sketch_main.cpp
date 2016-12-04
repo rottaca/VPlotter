@@ -29,6 +29,7 @@ uint16_t readIdx;
 
 // Systemstate
 boolean absolutePositioning = true;
+size_t lastSyncMsg = 0;
 
 void setup() {
 
@@ -62,10 +63,34 @@ void loop() {
         SEND_BUSY;
   }
 
+  // Send sync message
+  if(millis() - lastSyncMsg > SYNC_MSG_DELAY_MS && hw_ctrl_is_calibrated()){
+    lastSyncMsg = millis();
+    String str("SYNC ");
+    float x,y;
+    hw_ctrl_convert_length_to_point(STEPS_TO_LENGTH(hw_state.motor_pos[STP_LEFT]),
+      STEPS_TO_LENGTH(hw_state.motor_pos[STP_RIGHT]),&x, &y);
+
+    char strX[7], strY[7];
+    dtostrf(x, 6, 2, strX);
+    dtostrf(y, 6, 2, strY);
+    str.concat(strX);
+    str.concat(" ");
+    str.concat(strY);
+    str.concat(" ");
+    char pen = 'D';
+    if(hw_ctrl_is_pen_up())
+      pen = 'U';
+    str.concat(pen);
+    Serial.println(str);
+
+  }
+
+
   if(hw_ctrl_is_busy()||BUFFER_EMPTY())
     return;
 
-  // Execute new command and toto next
+  // Execute new command and goto next
   //Serial.print("Execute:");
   //Serial.println(cmdBuffer[readIdx]);
   processSerialInput(cmdBuffer[readIdx]);

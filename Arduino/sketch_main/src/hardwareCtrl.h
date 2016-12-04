@@ -58,6 +58,7 @@ void hw_ctrl_timer_callback();
 void hw_ctrl_convert_length_to_point(float L, float R, float* x, float* y);
 void hw_ctrl_convert_point_to_length(float x, float y, float*L, float*R);
 void hw_ctrl_execute_motion(float x, float y);
+bool hw_ctrl_is_pen_up();
 
 inline bool hw_ctrl_is_busy();
 
@@ -263,6 +264,10 @@ void hw_ctrl_convert_length_to_point(float L, float R, float* x, float* y){
 void hw_ctrl_convert_point_to_length(float x, float y, float* L, float* R){
   *L = sqrt(x * x + y * y);
   *R = sqrt((BASE_WIDTH - x) * (BASE_WIDTH - x) + y * y);
+}
+bool hw_ctrl_is_pen_up()
+{
+  return hw_state.servo_signal_length_us == SERVO_US_PEN_UP;
 }
 
 

@@ -48,6 +48,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->b_home,SIGNAL(clicked()),this,SLOT(onClickHome()));
     connect(ui->te_comand_script,SIGNAL(textChanged()),this,SLOT(onCommandEditorChanged()));
     connect(ui->vp_plotterRenderer,SIGNAL(onChangeProgress(float)),this,SLOT(onChangeProgress(float)));
+    connect(this,SIGNAL(syncPen(float,float,bool)),ui->vp_plotterRenderer,SLOT(syncPen(float,float,bool)));
 
     timer = new QTimer();
     connect(timer,SIGNAL(timeout()),this,SLOT(onPollPosition()));
@@ -261,13 +262,24 @@ void MainWindow::onTimerReadSerial()
         return;
 
     while(serialPort.canReadLine()){
-        QByteArray data = serialPort.readLine();
+        QString data = QString(serialPort.readLine());
         if(data.length() > 0){
+            if(data.contains("SYNC")){
+                QStringList strl = data.split(" ");
+                float x = strl.at(1).toFloat();
+                float y = strl.at(2).toFloat();
+                bool drawing = true;
+                if(strl.at(3).contains("U"))
+                    drawing = false;
+                ui->l_pos->setText(QString("%1 x %2").arg(x).arg(y));
+                emit syncPen(x,y,drawing);
+                continue;
+            }
 
             ui->te_output->moveCursor (QTextCursor::End);
 
             QTextEdit textEdit;
-            textEdit.setPlainText(QString(data));
+            textEdit.setPlainText(data);
             QString ret = textEdit.toHtml();
             // Error recieved ?
             if(ret.contains("ACK") && !ret.contains("ACK: 0"))
@@ -278,7 +290,7 @@ void MainWindow::onTimerReadSerial()
             ui->te_output->moveCursor (QTextCursor::End);
 
             // Send data to cmd executor
-            emit onSerialAnswerRecieved(QString(data));
+            emit onSerialAnswerRecieved(data);
         }
     }
 }
@@ -434,17 +446,32 @@ void MainWindow::onClickGenerateBoundingBox()
 void MainWindow::onChangeProgress(float p)
 {
     ui->pb_progress->setValue(p*100);
-    int msElapsed = executionTimeStart.elapsed()/p;
+    int msFullPrint = executionTimeStart.elapsed()/p;
 
-    int hours = msElapsed/(1000*60*60);
-    int minutes = (msElapsed-(hours*1000*60*60))/(1000*60);
-    int seconds = (msElapsed-(minutes*1000*60)-(hours*1000*60*60))/1000;
+    int hours = msFullPrint/(1000*60*60);
+    int minutes = (msFullPrint-(hours*1000*60*60))/(1000*60);
+    int seconds = (msFullPrint-(minutes*1000*60)-(hours*1000*60*60))/1000;
 
     QString formattedTime = (QString("%1").arg(hours, 2, 10, QLatin1Char('0')) + ":" +
                          QString( "%1" ).arg(minutes, 2, 10, QLatin1Char('0')) + ":" +
                          QString( "%1" ).arg(seconds, 2, 10, QLatin1Char('0')));
 
-    ui->l_time_left->setText(formattedTime);
+    ui->l_time_full->setText(formattedTime);
+
+    int msLeftPrint = msFullPrint*(1-p);
+
+    hours = msLeftPrint/(1000*60*60);
+    minutes = (msLeftPrint-(hours*1000*60*60))/(1000*60);
+    seconds = (msLeftPrint-(minutes*1000*60)-(hours*1000*60*60))/1000;
+
+    formattedTime = (QString("%1").arg(hours, 2, 10, QLatin1Char('0')) + ":" +
+                         QString( "%1" ).arg(minutes, 2, 10, QLatin1Char('0')) + ":" +
+                         QString( "%1" ).arg(seconds, 2, 10, QLatin1Char('0')));
+
+    ui->l_time_left->setText(msLeftPrint);
+
+    QTime t = executionTimeStart.addMSecs(msFullPrint);
+    ui->l_end_time->setText(t.toString("hh:mm"));
 
 }
 

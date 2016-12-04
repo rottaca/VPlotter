@@ -81,6 +81,7 @@ public slots:
     void onSimulationTimerOverflow();
     void simulateCommands(QStringList cmds);
     void abortSimulation();
+    void syncPen(float x, float y, bool drawing);
 
 signals:
     void onSimulationFinished();
@@ -98,6 +99,7 @@ private:
     QGraphicsPixmapItem* drawBoardImgItem;
     QGraphicsPixmapItem* motorImgItemL;
     QGraphicsPixmapItem* motorImgItemR;
+    QGraphicsPixmapItem* imgItemRealPrintHead;
 
     QVector2D imgSize;
     QVector2D plotterSize;

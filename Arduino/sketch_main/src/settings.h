@@ -16,6 +16,8 @@
 #define GCODE_COMMAND_SEPERATOR '\n'
 // Timeout for serial read
 #define SERIAL_TIMEOUT 100
+// Delay between two sync messages
+#define SYNC_MSG_DELAY_MS 1000
 
 // Microstepping multiplier
 #define MICRO_STEPPING 32
