@@ -468,7 +468,7 @@ void MainWindow::onChangeProgress(float p)
                          QString( "%1" ).arg(minutes, 2, 10, QLatin1Char('0')) + ":" +
                          QString( "%1" ).arg(seconds, 2, 10, QLatin1Char('0')));
 
-    ui->l_time_left->setText(msLeftPrint);
+    ui->l_time_left->setText(formattedTime);
 
     QTime t = executionTimeStart.addMSecs(msFullPrint);
     ui->l_end_time->setText(t.toString("hh:mm"));
